@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-orange: #ff6a3d;
+  --color-orange-dark: #e55a2d;
+  --color-grey-dark: #1a1a1a;
+  --color-grey-medium: #666666;
+  --color-grey-light: #f5f5f5;
+  --color-grey-silver: #e5e5e5;
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --font-display: "Clash Display", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-grey-light text-grey-dark font-body antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-orange text-white rounded-full font-bold hover:bg-orange-dark transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 bg-grey-dark text-white rounded-full font-medium hover:bg-black transition-colors;
+  }
+  
+  .btn-outline {
+    @apply px-6 py-3 border-2 border-grey-dark text-grey-dark rounded-full font-medium hover:bg-grey-dark hover:text-white transition-colors;
+  }
+
+  .premium-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300;
+  }
+  
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+}

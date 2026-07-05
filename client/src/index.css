@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sora:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-orange: #FF5A1F;
+  --color-orange-dark: #E04812;
+  --color-orange-light: #FF855C;
+
+  --color-grey-light: #FAFAFA;
+  --color-grey-silver: #EAEAEA;
+  --color-grey-medium: #888888;
+  --color-grey-dark: #111111;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-sora: 'Sora', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply text-grey-dark bg-white font-sans overflow-x-hidden m-0 p-0 antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold tracking-tight;
+  }
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(135deg, #111111 0%, #FF5A1F 100%);
+}
+
+.bg-gradient-premium {
+  background: radial-gradient(circle at top center, rgba(255,90,31,0.05) 0%, rgba(255,255,255,0) 70%);
+}
+
+.premium-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  border-color: rgba(255, 90, 31, 0.2);
+}
+

@@ -1,0 +1,22 @@
+# Node
+node_modules/
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+pm2_logs.txt
+pm2_status.txt
+
+# Misc
+*.txt
+*.docx
+b64.txt
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
