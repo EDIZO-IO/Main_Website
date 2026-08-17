@@ -2,7 +2,12 @@ const db = require('../db');
 
 exports.getProjects = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM portfolio_projects ORDER BY created_at DESC');
+    const [rows] = await db.query(`
+      SELECT p.*, s.title as service_title, s.category as service_category
+      FROM portfolio_projects p
+      LEFT JOIN services s ON p.service_id = s.id
+      ORDER BY p.created_at DESC
+    `);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -12,10 +17,10 @@ exports.getProjects = async (req, res) => {
 
 exports.addProject = async (req, res) => {
   try {
-    const { title, client, category, description, image_url, color, status } = req.body;
+    const { title, client, category, service_id, description, image_url, color, status } = req.body;
     await db.query(
-      'INSERT INTO portfolio_projects (title, client, category, description, image_url, color, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title, client, category, description, image_url, color || 'bg-blue-500', status || 'active']
+      'INSERT INTO portfolio_projects (title, client, category, service_id, description, image_url, color, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, client, category, service_id || null, description, image_url, color || 'bg-blue-500', status || 'active']
     );
     res.status(201).json({ message: 'Project added successfully' });
   } catch (err) {
@@ -27,10 +32,10 @@ exports.addProject = async (req, res) => {
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, client, category, description, image_url, color, status } = req.body;
+    const { title, client, category, service_id, description, image_url, color, status } = req.body;
     await db.query(
-      'UPDATE portfolio_projects SET title=?, client=?, category=?, description=?, image_url=?, color=?, status=? WHERE id=?',
-      [title, client, category, description, image_url, color, status, id]
+      'UPDATE portfolio_projects SET title=?, client=?, category=?, service_id=?, description=?, image_url=?, color=?, status=? WHERE id=?',
+      [title, client, category, service_id || null, description, image_url, color, status, id]
     );
     res.json({ message: 'Project updated successfully' });
   } catch (err) {

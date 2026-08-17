@@ -5,6 +5,24 @@ const router = express.Router();
 
 router.use(authenticateAdmin);
 
+// Helper to resolve or auto-create category_id
+const resolveCategoryId = async (categoryName, categoryTable) => {
+  if (!categoryName) return 1;
+  if (!isNaN(categoryName)) return parseInt(categoryName, 10);
+  
+  try {
+    const slug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const [rows] = await pool.query(`SELECT id FROM ${categoryTable} WHERE name = ? OR slug = ?`, [categoryName, slug]);
+    if (rows.length > 0) return rows[0].id;
+
+    // Create if missing
+    const [insertResult] = await pool.query(`INSERT INTO ${categoryTable} (name, slug) VALUES (?, ?)`, [categoryName, slug]);
+    return insertResult.insertId;
+  } catch (e) {
+    return 1;
+  }
+};
+
 router.get('/stats', async (req, res) => {
   try {
     const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
@@ -22,11 +40,16 @@ router.get('/stats', async (req, res) => {
 
 router.get('/recent-activity', async (req, res) => {
   try {
-    const [recentUsers] = await pool.query('SELECT id, name, email, role, created_at, "user" as type FROM users ORDER BY created_at DESC LIMIT 5');
-    const [recentApps] = await pool.query('SELECT a.id, u.name, a.internship_id as target, a.status, a.created_at, "application" as type FROM applications a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 5');
-    const [recentReqs] = await pool.query('SELECT r.id, u.name, r.service_id as target, r.status, r.created_at, "request" as type FROM service_requests r JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC LIMIT 5');
+    let recentUsers = [], recentApps = [], recentReqs = [];
+    try {
+      [recentUsers] = await pool.query('SELECT u.id, u.name, u.email, COALESCE(r.name, "user") as role, u.created_at, "user" as type FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC LIMIT 5');
+    } catch (e) {
+      [recentUsers] = await pool.query('SELECT id, name, email, role, created_at, "user" as type FROM users ORDER BY created_at DESC LIMIT 5');
+    }
     
-    // Merge and sort
+    [recentApps] = await pool.query('SELECT a.id, COALESCE(u.name, a.first_name) as name, a.internship_id as target, a.status, a.created_at, "application" as type FROM applications a LEFT JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 5');
+    [recentReqs] = await pool.query('SELECT r.id, COALESCE(u.name, "Client") as name, r.service_id as target, r.status, r.created_at, "request" as type FROM service_requests r LEFT JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC LIMIT 5');
+    
     const allActivity = [...recentUsers, ...recentApps, ...recentReqs]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 8);
@@ -40,7 +63,12 @@ router.get('/recent-activity', async (req, res) => {
 
 router.get('/users', async (req, res) => {
   try {
-    const [users] = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+    let users = [];
+    try {
+      [users] = await pool.query('SELECT u.id, u.name, u.email, COALESCE(r.name, "student") as role, u.created_at FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC');
+    } catch (e) {
+      [users] = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+    }
     res.json(users);
   } catch (error) {
     console.error("fetch users error:", error);
@@ -51,9 +79,9 @@ router.get('/users', async (req, res) => {
 router.get('/applications', async (req, res) => {
   try {
     const [apps] = await pool.query(`
-      SELECT a.*, u.name as user_name, u.email as user_email
+      SELECT a.*, COALESCE(u.name, CONCAT(a.first_name, ' ', a.last_name)) as user_name, COALESCE(u.email, a.email) as user_email
       FROM applications a
-      JOIN users u ON a.user_id = u.id
+      LEFT JOIN users u ON a.user_id = u.id
       ORDER BY a.created_at DESC
     `);
     res.json(apps);
@@ -67,7 +95,7 @@ router.get('/requests', async (req, res) => {
     const [reqs] = await pool.query(`
       SELECT r.*, u.name as user_name, u.email as user_email
       FROM service_requests r
-      JOIN users u ON r.user_id = u.id
+      LEFT JOIN users u ON r.user_id = u.id
       ORDER BY r.created_at DESC
     `);
     res.json(reqs);
@@ -101,17 +129,31 @@ const parseTextToStrings = (text) => {
 router.post('/internships', async (req, res) => {
   const { title, category, company, duration, mode, description, syllabus, benefits, eligibility, status, stipend, price, skill_level, image } = req.body;
   try {
-    const [result] = await pool.query(
-      'INSERT INTO internships (title, category, company, duration, mode, description, syllabus, benefits, eligibility, status, stipend, price, skill_level, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        title || null, category || null, company || null, duration || null, mode || null, description || null, 
-        parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
-        stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png'
-      ]
-    );
+    const categoryId = await resolveCategoryId(category, 'internship_categories');
+    let result;
+    try {
+      [result] = await pool.query(
+        'INSERT INTO internships (title, category_id, company, duration, mode, description, syllabus, benefits, eligibility, status, stipend, price, skill_level, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          title || null, categoryId, company || null, duration || null, mode || 'online', description || null, 
+          parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
+          stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png'
+        ]
+      );
+    } catch (e) {
+      [result] = await pool.query(
+        'INSERT INTO internships (title, category, company, duration, mode, description, syllabus, benefits, eligibility, status, stipend, price, skill_level, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          title || null, category || null, company || null, duration || null, mode || 'online', description || null, 
+          parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
+          stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png'
+        ]
+      );
+    }
     res.json({ id: result.insertId, title, category, company, duration, mode, description, status });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create internship' });
+    console.error("Create internship error:", error);
+    res.status(500).json({ error: error.message || 'Failed to create internship' });
   }
 });
 
@@ -119,17 +161,30 @@ router.put('/internships/:id', async (req, res) => {
   const { id } = req.params;
   const { title, category, company, duration, mode, description, syllabus, benefits, eligibility, status, stipend, price, skill_level, image } = req.body;
   try {
-    await pool.query(
-      'UPDATE internships SET title=?, category=?, company=?, duration=?, mode=?, description=?, syllabus=?, benefits=?, eligibility=?, status=?, stipend=?, price=?, skill_level=?, image=? WHERE id=?',
-      [
-        title || null, category || null, company || null, duration || null, mode || null, description || null, 
-        parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
-        stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png', id
-      ]
-    );
+    const categoryId = await resolveCategoryId(category, 'internship_categories');
+    try {
+      await pool.query(
+        'UPDATE internships SET title=?, category_id=?, company=?, duration=?, mode=?, description=?, syllabus=?, benefits=?, eligibility=?, status=?, stipend=?, price=?, skill_level=?, image=? WHERE id=?',
+        [
+          title || null, categoryId, company || null, duration || null, mode || 'online', description || null, 
+          parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
+          stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png', id
+        ]
+      );
+    } catch (e) {
+      await pool.query(
+        'UPDATE internships SET title=?, category=?, company=?, duration=?, mode=?, description=?, syllabus=?, benefits=?, eligibility=?, status=?, stipend=?, price=?, skill_level=?, image=? WHERE id=?',
+        [
+          title || null, category || null, company || null, duration || null, mode || 'online', description || null, 
+          parseTextToObjects(syllabus), parseTextToObjects(benefits), eligibility || null, status || 'active', 
+          stipend || null, price || '0', skill_level || 'beginner', image || '/images/internship.png', id
+        ]
+      );
+    }
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update internship' });
+    console.error("Update internship error:", error);
+    res.status(500).json({ error: error.message || 'Failed to update internship' });
   }
 });
 
@@ -147,13 +202,23 @@ router.delete('/internships/:id', async (req, res) => {
 router.post('/services', async (req, res) => {
   const { title, category, description, features, price, status, icon, image_url, pricing_tiers } = req.body;
   try {
-    const [result] = await pool.query(
-      'INSERT INTO services (title, category, description, features, price, status, icon, image_url, pricing_tiers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [title, category, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers)]
-    );
+    const categoryId = await resolveCategoryId(category, 'service_categories');
+    let result;
+    try {
+      [result] = await pool.query(
+        'INSERT INTO services (title, category_id, description, features, price, status, icon, image_url, pricing_tiers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, categoryId, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers)]
+      );
+    } catch (e) {
+      [result] = await pool.query(
+        'INSERT INTO services (title, category, description, features, price, status, icon, image_url, pricing_tiers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, category, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers)]
+      );
+    }
     res.json({ id: result.insertId, title, category, description, price, status, image_url });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create service' });
+    console.error("Create service error:", error);
+    res.status(500).json({ error: error.message || 'Failed to create service' });
   }
 });
 
@@ -161,13 +226,22 @@ router.put('/services/:id', async (req, res) => {
   const { id } = req.params;
   const { title, category, description, features, price, status, icon, image_url, pricing_tiers } = req.body;
   try {
-    await pool.query(
-      'UPDATE services SET title=?, category=?, description=?, features=?, price=?, status=?, icon=?, image_url=?, pricing_tiers=? WHERE id=?', 
-      [title, category, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers), id]
-    );
+    const categoryId = await resolveCategoryId(category, 'service_categories');
+    try {
+      await pool.query(
+        'UPDATE services SET title=?, category_id=?, description=?, features=?, price=?, status=?, icon=?, image_url=?, pricing_tiers=? WHERE id=?', 
+        [title, categoryId, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers), id]
+      );
+    } catch (e) {
+      await pool.query(
+        'UPDATE services SET title=?, category=?, description=?, features=?, price=?, status=?, icon=?, image_url=?, pricing_tiers=? WHERE id=?', 
+        [title, category, description, parseTextToStrings(features), price, status || 'active', icon, image_url, parseTextToObjects(pricing_tiers), id]
+      );
+    }
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update service' });
+    console.error("Update service error:", error);
+    res.status(500).json({ error: error.message || 'Failed to update service' });
   }
 });
 

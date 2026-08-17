@@ -3,6 +3,11 @@ const router = express.Router();
 const db = require('../db');
 const whatsappService = require('../services/whatsappService');
 
+// Helper to get client IP
+const getClientIp = (req) => {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || req.ip || null;
+};
+
 // @route   POST /api/contact
 // @desc    Submit a contact message
 // @access  Public
@@ -14,10 +19,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Name, email, and message are required' });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO contact_messages (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)',
-      [name, email, phone || null, subject || 'General Inquiry', message]
-    );
+    const ipAddress = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    let result;
+    try {
+      [result] = await db.query(
+        'INSERT INTO contact_messages (name, email, subject, message, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, email, subject || 'General Inquiry', message, ipAddress, userAgent]
+      );
+    } catch (e) {
+      [result] = await db.query(
+        'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
+        [name, email, subject || 'General Inquiry', message]
+      );
+    }
 
     if (phone) {
       const waMessage = `Hi ${name},\n\nThank you for reaching out to EDIZO!\n\nWe have received your message regarding "${subject || 'General Inquiry'}". Our team will review your inquiry and get back to you shortly.\n\nBest regards,\nEDIZO Team`;

@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const [job] = await db.query('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
+    const [job] = await db.query('SELECT * FROM jobs WHERE id = ? OR uuid = ?', [req.params.id, req.params.id]);
     if (job.length === 0) return res.status(404).json({ message: 'Job not found' });
     res.json(job[0]);
   } catch (error) {
@@ -35,16 +35,26 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/apply', async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { firstName, lastName, email, resume, coverLetter, userId } = req.body;
+    const { firstName, lastName, email, resume, resumeUrl, coverLetter, userId } = req.body;
 
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO job_applications (job_id, user_id, first_name, last_name, email, resume, cover_letter) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [jobId, userId || null, firstName, lastName, email, resume || null, coverLetter || '']
-    );
+    const resumeFile = resumeUrl || resume || null;
+
+    let result;
+    try {
+      [result] = await db.query(
+        'INSERT INTO job_applications (job_id, user_id, first_name, last_name, email, resume_url, cover_letter) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [jobId, userId || null, firstName, lastName, email, resumeFile, coverLetter || '']
+      );
+    } catch (e) {
+      [result] = await db.query(
+        'INSERT INTO job_applications (job_id, user_id, first_name, last_name, email, resume, cover_letter) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [jobId, userId || null, firstName, lastName, email, resumeFile, coverLetter || '']
+      );
+    }
 
     res.status(201).json({ message: 'Application submitted successfully', id: result.insertId });
   } catch (error) {

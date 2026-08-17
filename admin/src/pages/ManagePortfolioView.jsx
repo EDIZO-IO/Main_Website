@@ -19,6 +19,7 @@ const fetchApi = async (url, options = {}, token) => {
 const ManagePortfolioView = () => {
   const { token } = useAuth();
   const [projects, setProjects] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [editId, setEditId] = useState(null);
@@ -27,20 +28,25 @@ const ManagePortfolioView = () => {
     title: '',
     client: '',
     category: '',
+    service_id: '',
     description: '',
     image_url: '',
     color: 'bg-blue-500'
   });
 
   useEffect(() => {
-    loadProjects();
+    loadInitialData();
   }, []);
 
-  const loadProjects = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true);
-      const data = await fetchApi('/api/portfolio', {}, token);
-      setProjects(data);
+      const [projData, servData] = await Promise.all([
+        fetchApi('/api/portfolio', {}, token),
+        fetchApi('/api/services', {}, token).catch(() => [])
+      ]);
+      setProjects(projData);
+      setServices(servData || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -48,13 +54,23 @@ const ManagePortfolioView = () => {
     }
   };
 
+  const loadProjects = async () => {
+    try {
+      const data = await fetchApi('/api/portfolio', {}, token);
+      setProjects(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleEdit = (proj) => {
     setEditId(proj.id);
     setFormData({
-      title: proj.title,
-      client: proj.client,
-      category: proj.category,
-      description: proj.description,
+      title: proj.title || '',
+      client: proj.client || '',
+      category: proj.category || '',
+      service_id: proj.service_id || '',
+      description: proj.description || '',
       image_url: proj.image_url || '',
       color: proj.color || 'bg-blue-500'
     });
@@ -149,7 +165,7 @@ const ManagePortfolioView = () => {
       }
       setTimeout(() => setSuccessMsg(''), 3000);
       setEditId(null);
-      setFormData({ title: '', client: '', category: '', description: '', image_url: '', color: 'bg-blue-500' });
+      setFormData({ title: '', client: '', category: '', service_id: '', description: '', image_url: '', color: 'bg-blue-500' });
       loadProjects();
     } catch (err) {
       console.error(err);
@@ -163,7 +179,7 @@ const ManagePortfolioView = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-gray-900">Manage Portfolio</h1>
-          <p className="text-gray-500 mt-1">Manage public projects shown on the Projects page.</p>
+          <p className="text-gray-500 mt-1">Manage public projects shown on the Projects page, linked to services.</p>
         </div>
       </div>
       
@@ -186,8 +202,23 @@ const ManagePortfolioView = () => {
             <input type="text" value={formData.client} onChange={e => setFormData({...formData, client: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Category Badge Text (e.g. Web Development)</label>
             <input type="text" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Associated Service (Splits view on Website based on Services)</label>
+            <select
+              value={formData.service_id}
+              onChange={e => setFormData({...formData, service_id: e.target.value})}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+            >
+              <option value="">-- Select Service (Optional) --</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({s.category || 'General'})
+                </option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
@@ -213,7 +244,7 @@ const ManagePortfolioView = () => {
         </div>
         <div className="mt-6 flex justify-end gap-4">
           {editId && (
-            <button onClick={() => { setEditId(null); setFormData({ title: '', client: '', category: '', description: '', image_url: '', color: 'bg-blue-500' }); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+            <button onClick={() => { setEditId(null); setFormData({ title: '', client: '', category: '', service_id: '', description: '', image_url: '', color: 'bg-blue-500' }); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
               Cancel
             </button>
           )}
@@ -230,7 +261,7 @@ const ManagePortfolioView = () => {
             <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wider">
               <th className="p-6 font-bold">Project</th>
               <th className="p-6 font-bold">Category</th>
-              <th className="p-6 font-bold">Color</th>
+              <th className="p-6 font-bold">Linked Service</th>
               <th className="p-6 font-bold text-right">Actions</th>
             </tr>
           </thead>
@@ -242,8 +273,14 @@ const ManagePortfolioView = () => {
                   <div className="text-sm text-gray-500">{proj.client}</div>
                 </td>
                 <td className="p-6 text-sm text-gray-700">{proj.category}</td>
-                <td className="p-6">
-                  <div className={`w-8 h-8 rounded-full ${proj.color}`}></div>
+                <td className="p-6 text-sm text-gray-700 font-medium">
+                  {proj.service_title ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                      {proj.service_title}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 font-normal">Unlinked</span>
+                  )}
                 </td>
                 <td className="p-6 text-right">
                   <div className="flex justify-end gap-2">
