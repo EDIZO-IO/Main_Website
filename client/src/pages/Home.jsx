@@ -2,6 +2,7 @@ import { Helmet } from 'react-helmet-async';
 import Hero from '../components/home/Hero';
 import CompanyIntro from '../components/home/CompanyIntro';
 import Services from '../components/home/Services';
+import ProjectEstimator from '../components/home/ProjectEstimator';
 import Process from '../components/home/Process';
 import TechUniverse from '../components/home/TechUniverse';
 import Projects from '../components/home/Projects';
@@ -23,6 +24,7 @@ const Home = () => {
         <Hero />
         <CompanyIntro />
         <Services />
+        <ProjectEstimator />
         <div id="how-we-work"><Process /></div>
         <TechUniverse />
         <Projects />

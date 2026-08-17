@@ -288,4 +288,66 @@ router.get('/contact-messages', async (req, res) => {
   }
 });
 
+router.put('/contact-messages/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await pool.query('UPDATE contact_messages SET status = ? WHERE id = ?', [status, id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update message status' });
+  }
+});
+
+// Update Application Status
+router.put('/applications/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await pool.query('UPDATE applications SET status = ? WHERE id = ?', [status, id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update application status' });
+  }
+});
+
+// Update User Role
+router.put('/users/:id/role', async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  try {
+    const roleIdMap = { 'super_admin': 1, 'admin': 2, 'mentor': 3, 'student': 4, 'client': 5, 'staff': 6 };
+    const roleId = roleIdMap[role] || 4;
+    try {
+      await pool.query('UPDATE users SET role_id = ?, role = ? WHERE id = ?', [roleId, role, id]);
+    } catch (e) {
+      await pool.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
+// Delete User
+router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// DPDP Consent Audit Logs
+router.get('/consent-logs', async (req, res) => {
+  try {
+    const [logs] = await pool.query('SELECT * FROM consent_logs ORDER BY created_at DESC LIMIT 100');
+    res.json(logs);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
 module.exports = router;

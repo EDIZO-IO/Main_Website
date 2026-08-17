@@ -51,7 +51,8 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin' || user.role_id === 1 || user.role_id === 2);
+  if (!user || !isAdmin) {
     return <Navigate to="/login" replace />;
   }
 

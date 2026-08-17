@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, User, Moon, Sun } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -14,34 +14,30 @@ const Navbar = () => {
   const { isAuthenticated, logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Initialize dark mode from localStorage or system preference
-  useEffect(() => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
+  // Dynamic Theme Handler
+  const updateThemeMode = useCallback((targetMode) => {
+    const shouldBeDark = targetMode === 'dark';
+    document.documentElement.classList.toggle('dark', shouldBeDark);
+    localStorage.setItem('theme', shouldBeDark ? 'dark' : 'light');
+    setIsDarkMode(shouldBeDark);
   }, []);
 
   const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-      setIsDarkMode(true);
-    }
+    updateThemeMode(isDarkMode ? 'light' : 'dark');
   };
 
+  // Initialize theme dynamically from localStorage (Default: light)
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    updateThemeMode(savedTheme);
+  }, [updateThemeMode]);
+
+  // Dynamic Scroll Handler
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -73,13 +69,26 @@ const Navbar = () => {
         </div>
 
         <div className="hidden lg:flex items-center gap-4">
+            {/* Dynamic Navbar Dark Theme Toggle Button */}
             <button 
                 onClick={toggleDarkMode} 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-navy hover:bg-navy/5 transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-navy/10 hover:border-orange hover:bg-orange/5 transition-all text-xs font-extrabold text-navy dark:text-white dark:border-white/20"
                 aria-label="Toggle Dark Mode"
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
-                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {isDarkMode ? (
+                  <>
+                    <Sun size={15} className="text-orange animate-spin-slow" />
+                    <span>LIGHT</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon size={15} className="text-navy" />
+                    <span>DARK</span>
+                  </>
+                )}
             </button>
+
             {isAuthenticated ? (
               <>
                 <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-full border border-navy/10 text-navy text-sm font-bold hover:bg-orange hover:text-white hover:border-orange transition-all dark:text-white dark:border-white/20">
@@ -104,10 +113,11 @@ const Navbar = () => {
         <div className="lg:hidden flex items-center gap-2">
           <button 
             onClick={toggleDarkMode} 
-            className="w-10 h-10 rounded-full flex items-center justify-center text-navy hover:bg-navy/5 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-navy/10 text-xs font-bold text-navy dark:text-white dark:border-white/20"
             aria-label="Toggle Dark Mode"
           >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {isDarkMode ? <Sun size={16} className="text-orange" /> : <Moon size={16} className="text-navy" />}
+            <span>{isDarkMode ? 'LIGHT' : 'DARK'}</span>
           </button>
           <button 
             className="text-navy p-2"

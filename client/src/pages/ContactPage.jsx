@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { Mail, Phone, MapPin, Navigation, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useSite } from '../context/SiteContext';
 
 const ContactPage = () => {
@@ -14,7 +14,8 @@ const ContactPage = () => {
     email: '',
     phone: '',
     subject: 'General Inquiry',
-    message: ''
+    message: '',
+    consent: true
   });
   const [status, setStatus] = useState('idle'); // idle, submitting, success, error
 
@@ -48,7 +49,8 @@ const ContactPage = () => {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -56,6 +58,16 @@ const ContactPage = () => {
     setStatus('submitting');
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      // Log DPDP consent asynchronously
+      if (formData.consent) {
+        fetch(`${API_URL}/api/user/consent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, consent_type: 'contact_privacy_policy', granted: true })
+        }).catch(() => {});
+      }
+
       const res = await fetch(`${API_URL}/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,7 +75,7 @@ const ContactPage = () => {
       });
       if (res.ok) {
         setStatus('success');
-        setFormData({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '' });
+        setFormData({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '', consent: true });
         setTimeout(() => setStatus('idle'), 5000);
       } else {
         setStatus('error');
@@ -98,208 +110,209 @@ const ContactPage = () => {
         <div className="container mx-auto px-6 max-w-5xl text-center relative z-10">
           <motion.div {...fadeIn}>
             <span className="inline-block px-6 py-2 rounded-full bg-white/5 border border-white/10 text-orange font-bold text-sm mb-8 tracking-wider uppercase backdrop-blur-sm">
-              Contact Our Team
+              Contact EDIZO
             </span>
-            {heroContent.title && (
-              <h1 className="text-5xl md:text-7xl font-display font-extrabold text-white mb-8 tracking-tight leading-[1.1]">
-                {heroContent.title}
-              </h1>
-            )}
-            {heroContent.subtitle && (
-              <p className="text-xl md:text-2xl text-white/70 leading-relaxed max-w-3xl mx-auto">
-                {heroContent.subtitle}
-              </p>
-            )}
+            <h1 className="text-5xl md:text-7xl font-display font-extrabold text-white mb-8 tracking-tight">
+              {heroContent?.title || "Let's Build Something Extraordinary"}
+            </h1>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+              {heroContent?.subtitle || "Have a project in mind, need tech consultation, or want to join our internship program? Reach out to our team."}
+            </p>
           </motion.div>
         </div>
       </section>
 
-      <div className="container mx-auto px-6 max-w-6xl -mt-16 relative z-20">
-        <div className="flex flex-col lg:flex-row gap-8">
+      {/* Main Content */}
+      <section className="-mt-16 container mx-auto px-6 max-w-7xl relative z-20">
+        <div className="grid lg:grid-cols-12 gap-12">
           
-          {/* Left Column: Contact Info */}
-          <div className="w-full lg:w-5/12 space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-grey-silver flex gap-6 items-start hover:-translate-y-1 transition-transform group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-orange/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Mail className="text-orange" size={24} />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-navy text-xl mb-2">Email Us</h3>
-                <a href={`mailto:${config.email_1}`} className="text-grey-medium hover:text-orange transition-colors block">{config.email_1}</a>
-                {config.email_2 && <a href={`mailto:${config.email_2}`} className="text-grey-medium hover:text-orange transition-colors block mt-1">{config.email_2}</a>}
-                {config.email_3 && <a href={`mailto:${config.email_3}`} className="text-grey-medium hover:text-orange transition-colors block mt-1">{config.email_3}</a>}
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-grey-silver flex gap-6 items-start hover:-translate-y-1 transition-transform group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-navy/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Phone className="text-navy" size={24} />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-navy text-xl mb-2">Call Us</h3>
-                <a href={`tel:${config.phone}`} className="font-medium text-grey-dark hover:text-orange transition-colors block">{config.phone}</a>
-                {config.office_hours && <p className="text-grey-medium text-sm mt-2 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> {config.office_hours}</p>}
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-grey-silver flex gap-6 items-start hover:-translate-y-1 transition-transform group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-orange flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <MapPin className="text-white" size={24} />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-navy text-xl mb-2">Our Headquarters</h3>
-                <p className="font-medium text-grey-dark">{config.address_title}</p>
-                <p className="text-grey-medium">{config.address_line1}</p>
-                <p className="text-grey-medium">{config.address_line2}</p>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Right Column: Contact Form */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="w-full lg:w-7/12 bg-white rounded-[3rem] p-10 md:p-14 shadow-2xl border border-grey-silver relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-orange/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-            
-            <h2 className="text-3xl font-display font-bold text-navy mb-4">Send a message</h2>
-            <p className="text-grey-medium mb-10 leading-relaxed">
-              Have a specific inquiry? Fill out the form below and our team will get back to you within 24 hours.
-            </p>
-
-            {status === 'success' && (
-              <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-3 text-green-700 animate-in fade-in slide-in-from-top-4">
-                <CheckCircle2 size={24} />
-                <p className="font-medium">Thanks for contacting us! We'll be in touch soon.</p>
-              </div>
-            )}
-            
-            {status === 'error' && (
-              <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-700 animate-in fade-in slide-in-from-top-4">
-                <AlertCircle size={24} />
-                <p className="font-medium">Something went wrong. Please try again or contact us directly via email.</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
-                    placeholder=" "
-                  />
-                  <label htmlFor="name" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
-                    Full Name
-                  </label>
+          {/* Info Side */}
+          <motion.div {...fadeIn} className="lg:col-span-5 space-y-8">
+            <div className="bg-white p-10 rounded-[2.5rem] border border-grey-silver shadow-sm hover:shadow-xl transition-shadow">
+              <h2 className="text-2xl font-display font-bold text-navy mb-8">Contact Information</h2>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+                    <Mail size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-grey-medium uppercase tracking-wider mb-1">Email Us</h3>
+                    <a href={`mailto:${config.email_1 || 'contact@edizo.in'}`} className="text-base font-bold text-navy hover:text-orange transition-colors">
+                      {config.email_1 || 'contact@edizo.in'}
+                    </a>
+                  </div>
                 </div>
-                <div className="relative group">
-                  <input 
-                    type="email" 
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
-                    placeholder=" "
-                  />
-                  <label htmlFor="email" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
-                    Email Address
-                  </label>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+                    <Phone size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-grey-medium uppercase tracking-wider mb-1">Call Us</h3>
+                    <a href={`tel:${config.phone || '+91 98765 43210'}`} className="text-base font-bold text-navy hover:text-orange transition-colors">
+                      {config.phone || '+91 98765 43210'}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+                    <MapPin size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-grey-medium uppercase tracking-wider mb-1">{config.address_title || 'Headquarters'}</h3>
+                    <p className="text-base font-bold text-navy">
+                      {config.address_line1 || 'Edizo Tech Solutions'}<br />
+                      <span className="text-sm font-normal text-grey-dark">{config.address_line2 || 'Bengaluru, Karnataka, India'}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="relative group">
-                <input 
-                  type="tel" 
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
-                  placeholder=" "
-                />
-                <label htmlFor="phone" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
-                  Phone Number
-                </label>
-              </div>
-
-              <div className="relative group">
-                <select 
-                  id="subject"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors appearance-none text-navy peer font-medium"
-                >
-                  <option value="General Inquiry">General Inquiry</option>
-                  <option value="Graphic Design">Graphic Design</option>
-                  <option value="Video Editing">Video Editing</option>
-                  <option value="Website Development">Website Development</option>
-                  <option value="App Development">App Development</option>
-                  <option value="SEO">SEO & Digital Marketing</option>
-                  <option value="API">API Solutions</option>
-                  <option value="Internship">Internship & Workshops</option>
-                </select>
-                <label htmlFor="subject" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5">
-                  Service Interested In
-                </label>
-              </div>
-
-              <div className="relative group">
-                <textarea 
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows="5"
-                  required
-                  className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors resize-none text-navy peer"
-                  placeholder=" "
-                ></textarea>
-                <label htmlFor="message" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
-                  Your Message
-                </label>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={status === 'submitting'}
-                className="w-full px-8 py-5 bg-navy text-white font-bold rounded-2xl hover:bg-black transition-all shadow-lg shadow-navy/20 hover:-translate-y-1 active:translate-y-0 duration-200 uppercase tracking-wider text-sm flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:hover:translate-y-0"
-              >
-                {status === 'submitting' ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>Send Message <Send size={16} /></>
-                )}
-              </button>
-            </form>
+            </div>
           </motion.div>
+
+          {/* Form Side */}
+          <motion.div {...fadeIn} className="lg:col-span-7">
+            <div className="bg-white p-10 rounded-[2.5rem] border border-grey-silver shadow-sm relative overflow-hidden">
+              <h2 className="text-3xl font-display font-bold text-navy mb-8">Send Us a Message</h2>
+
+              {status === 'success' && (
+                <div className="mb-8 p-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 font-medium">
+                  <CheckCircle2 size={24} className="text-emerald-600 shrink-0" />
+                  Your message has been sent successfully! Our team will get back to you shortly.
+                </div>
+              )}
+
+              {status === 'error' && (
+                <div className="mb-8 p-6 bg-red-50 border border-red-200 text-red-800 rounded-2xl flex items-center gap-3 font-medium">
+                  <AlertCircle size={24} className="text-red-600 shrink-0" />
+                  Failed to send message. Please try again or email us directly.
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="relative group">
+                    <input 
+                      type="text" 
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
+                      placeholder=" "
+                    />
+                    <label htmlFor="name" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
+                      Full Name
+                    </label>
+                  </div>
+                  <div className="relative group">
+                    <input 
+                      type="email" 
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
+                      placeholder=" "
+                    />
+                    <label htmlFor="email" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
+                      Email Address
+                    </label>
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <input 
+                    type="tel" 
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors text-navy peer"
+                    placeholder=" "
+                  />
+                  <label htmlFor="phone" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
+                    Phone Number
+                  </label>
+                </div>
+
+                <div className="relative group">
+                  <select 
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors appearance-none text-navy peer font-medium"
+                  >
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Graphic Design">Graphic Design</option>
+                    <option value="Video Editing">Video Editing</option>
+                    <option value="Website Development">Website Development</option>
+                    <option value="App Development">App Development</option>
+                    <option value="SEO">SEO & Digital Marketing</option>
+                    <option value="Internship">Internship & Workshops</option>
+                  </select>
+                  <label htmlFor="subject" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5">
+                    Service Interested In
+                  </label>
+                </div>
+
+                <div className="relative group">
+                  <textarea 
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    rows="5"
+                    required
+                    className="block w-full bg-grey-light border border-grey-silver px-5 pt-7 pb-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange transition-colors resize-none text-navy peer"
+                    placeholder=" "
+                  ></textarea>
+                  <label htmlFor="message" className="absolute text-sm font-bold text-grey-medium duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-orange">
+                    Your Message
+                  </label>
+                </div>
+
+                {/* DPDP Privacy Consent */}
+                <div className="flex items-center gap-3 text-xs text-grey-dark pt-2">
+                  <input 
+                    type="checkbox" 
+                    id="consent" 
+                    name="consent" 
+                    checked={formData.consent} 
+                    onChange={handleChange}
+                    className="rounded border-grey-silver text-orange focus:ring-orange w-4 h-4 cursor-pointer" 
+                  />
+                  <label htmlFor="consent" className="flex items-center gap-1 cursor-pointer">
+                    <ShieldCheck size={14} className="text-orange shrink-0" />
+                    I consent to EDIZO processing my data under the Digital Personal Data Protection (DPDP) Act 2023.
+                  </label>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={status === 'submitting'}
+                  className="w-full py-5 bg-orange text-white rounded-2xl font-bold hover:bg-orange-dark transition-all duration-300 shadow-lg shadow-orange/25 flex items-center justify-center gap-2 group disabled:opacity-50"
+                >
+                  {status === 'submitting' ? (
+                    'Sending Message...'
+                  ) : (
+                    <>
+                      <span>Send Message</span>
+                      <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </motion.div>
+
         </div>
-      </div>
+      </section>
     </div>
   );
 };

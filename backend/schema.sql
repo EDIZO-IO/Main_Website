@@ -10,7 +10,7 @@ CREATE DATABASE IF NOT EXISTS edizo_db
 USE edizo_db;
 
 SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 1;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================================
 -- SECTION 1: RBAC (ROLES & PERMISSIONS)
@@ -289,6 +289,12 @@ CREATE TABLE IF NOT EXISTS portfolio_projects (
   FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+SET @exist_p := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'portfolio_projects' AND COLUMN_NAME = 'service_id');
+SET @sqlstmt_p := IF(@exist_p = 0, 'ALTER TABLE portfolio_projects ADD COLUMN service_id INT', 'SELECT 1');
+PREPARE stmt_p FROM @sqlstmt_p;
+EXECUTE stmt_p;
+DEALLOCATE PREPARE stmt_p;
+
 CREATE TABLE IF NOT EXISTS service_related_projects (
   service_id            INT NOT NULL,
   portfolio_project_id  INT NOT NULL,
@@ -477,9 +483,17 @@ CREATE TABLE IF NOT EXISTS service_requests (
 ) ENGINE=InnoDB;
 
 -- Add self-referencing FK back from projects to service_requests after table creation
-ALTER TABLE projects
-  ADD CONSTRAINT fk_projects_service_request
-  FOREIGN KEY (service_request_id) REFERENCES service_requests(id) ON DELETE SET NULL;
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projects' AND COLUMN_NAME = 'service_request_id');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE projects ADD COLUMN service_request_id INT', 'SELECT 1');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @fk_exist := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'projects' AND CONSTRAINT_NAME = 'fk_projects_service_request');
+SET @fk_sql := IF(@fk_exist = 0, 'ALTER TABLE projects ADD CONSTRAINT fk_projects_service_request FOREIGN KEY (service_request_id) REFERENCES service_requests(id) ON DELETE SET NULL', 'SELECT 1');
+PREPARE stmt2 FROM @fk_sql;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;
 
 CREATE TABLE IF NOT EXISTS project_milestones (
   id            INT AUTO_INCREMENT PRIMARY KEY,

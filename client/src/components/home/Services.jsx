@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Layers } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
-// Hardcoded visual configuration for the bento grid since it requires specific JSX and spans
+// Bento grid layout styles
 const bentoConfigs = [
   {
     span: 'lg:col-span-2 lg:row-span-2',
@@ -71,14 +71,6 @@ const bentoConfigs = [
   }
 ];
 
-const fallbackServices = [
-  { title: 'WEB DEVELOPMENT', description: 'Fast, scalable and conversion-focused web experiences.' },
-  { title: 'MOBILE APPS', description: 'Modern Android and iOS applications built with Flutter.' },
-  { title: 'UI / UX DESIGN', description: 'Interfaces designed around real users and real business goals.' },
-  { title: 'SAAS PLATFORMS', description: 'Scalable software platforms built for long-term growth.' },
-  { title: 'AI & AUTOMATION', description: 'Intelligent workflows and business automation.' }
-];
-
 const Services = () => {
   const [hoveredId, setHoveredId] = useState(null);
   const [services, setServices] = useState([]);
@@ -92,19 +84,13 @@ const Services = () => {
         const response = await fetch(`${API_URL}/api/services`);
         if (response.ok) {
           const data = await response.json();
-          // We only need the first 5 for the bento grid
-          const topServices = data.slice(0, 5);
-          if (topServices.length === 0) {
-             setServices(fallbackServices);
-          } else {
-             setServices(topServices);
-          }
+          setServices(Array.isArray(data) ? data.slice(0, 5) : []);
         } else {
-          setServices(fallbackServices);
+          setServices([]);
         }
       } catch (err) {
-        console.error("Failed to fetch services:", err);
-        setServices(fallbackServices);
+        console.error("Failed to fetch services from API:", err);
+        setServices([]);
       } finally {
         setLoading(false);
       }
@@ -114,18 +100,16 @@ const Services = () => {
 
   if (loading) {
      return (
-       <section className="py-24 bg-white dark:bg-navy min-h-screen">
+       <section className="py-24 bg-white dark:bg-navy">
          <div className="container mx-auto px-6">
            <div className="mb-16 max-w-2xl">
-             <div className="h-12 md:h-16 w-3/4 bg-grey-light dark:bg-navy-light rounded-2xl animate-shimmer mb-4"></div>
-             <div className="h-12 md:h-16 w-1/2 bg-grey-light dark:bg-navy-light rounded-2xl animate-shimmer"></div>
+             <div className="h-12 md:h-16 w-3/4 bg-grey-light dark:bg-navy-light rounded-2xl animate-pulse mb-4"></div>
+             <div className="h-12 md:h-16 w-1/2 bg-grey-light dark:bg-navy-light rounded-2xl animate-pulse"></div>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-             <div className="lg:col-span-2 lg:row-span-2 h-[400px] lg:h-[600px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-shimmer"></div>
-             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-shimmer"></div>
-             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-shimmer"></div>
-             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-shimmer"></div>
-             <div className="lg:col-span-2 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-shimmer"></div>
+             <div className="lg:col-span-2 lg:row-span-2 h-[400px] lg:h-[600px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
+             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
+             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
            </div>
          </div>
        </section>
@@ -148,65 +132,73 @@ const Services = () => {
         </div>
 
         {/* BENTO GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 auto-rows-min">
-          {services.map((service, idx) => {
-            const config = bentoConfigs[idx % bentoConfigs.length];
-            const displayId = `0${idx + 1}`;
-            return (
-            <motion.div 
-              key={displayId}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              onMouseEnter={() => setHoveredId(displayId)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={() => navigate(`/services/${service.id || ''}`)}
-              className={`premium-card p-6 flex flex-col relative overflow-hidden group cursor-pointer ${config.span} ${config.height} ${config.bg}`}
-            >
-              
-              <div className="flex justify-between items-start mb-auto relative z-10">
-                <span className={`text-sm font-display font-bold transition-colors ${config.bg.includes('text-white') ? 'text-white/50 group-hover:text-white' : 'text-navy/30 group-hover:text-orange'}`}>
-                  {displayId}
-                </span>
+        {services.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 auto-rows-min">
+            {services.map((service, idx) => {
+              const config = bentoConfigs[idx % bentoConfigs.length];
+              const displayId = `0${idx + 1}`;
+              return (
+              <motion.div 
+                key={service.id || displayId}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                onMouseEnter={() => setHoveredId(displayId)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => navigate(`/services/${service.id || ''}`)}
+                className={`premium-card p-6 flex flex-col relative overflow-hidden group cursor-pointer ${config.span} ${config.height} ${config.bg}`}
+              >
                 
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${hoveredId === displayId ? 'bg-orange text-white rotate-[-45deg]' : 'bg-transparent border border-current opacity-20'}`}>
-                  <ArrowRight size={18} />
+                <div className="flex justify-between items-start mb-auto relative z-10">
+                  <span className={`text-sm font-display font-bold transition-colors ${config.bg.includes('text-white') ? 'text-white/50 group-hover:text-white' : 'text-navy/30 group-hover:text-orange'}`}>
+                    {displayId}
+                  </span>
+                  
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${hoveredId === displayId ? 'bg-orange text-white rotate-[-45deg]' : 'bg-transparent border border-current opacity-20'}`}>
+                    <ArrowRight size={18} />
+                  </div>
                 </div>
-              </div>
-              
-              {service.image_url ? (
-                <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl md:rounded-[2.5rem]">
-                  <img 
-                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${service.image_url}`} 
-                    alt={service.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-colors duration-500"></div>
+                
+                {service.image_url ? (
+                  <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl md:rounded-[2.5rem]">
+                    <img 
+                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${service.image_url}`} 
+                      alt={service.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-colors duration-500"></div>
+                  </div>
+                ) : (
+                  config.visual
+                )}
+
+                <div className="relative z-10 mt-auto w-2/3">
+                  <h3 className={`text-xl lg:text-2xl font-display font-bold mb-4 ${service.image_url ? 'text-white font-extrabold shadow-sm' : ''}`}>{service.title}</h3>
+                  <p className={`font-medium leading-relaxed ${service.image_url ? 'text-white/90' : config.bg.includes('text-white') ? 'text-white/80' : 'text-navy/60 dark:text-white/60'}`}>{service.description}</p>
                 </div>
-              ) : (
-                config.visual
-              )}
+                
+                {/* Expand Detail Overlay */}
+                <div className={`absolute inset-0 bg-navy text-white p-8 flex flex-col justify-between transition-transform duration-500 z-20 ${hoveredId === displayId ? 'translate-y-0' : 'translate-y-full'}`}>
+                   <div>
+                      <h4 className="text-xl font-display font-bold text-orange mb-4">{service.title}</h4>
+                      <p className="text-white/70 font-medium">Click to explore our process, technologies, and case studies related to {service.title.toLowerCase()}.</p>
+                   </div>
+                   <Link to={`/services/${service.id || ''}`} className="text-white font-bold flex items-center gap-2 hover:text-orange transition-colors">
+                      EXPLORE <ArrowRight size={18} />
+                   </Link>
+                </div>
 
-              <div className="relative z-10 mt-auto w-2/3">
-                <h3 className={`text-xl lg:text-2xl font-display font-bold mb-4 ${service.image_url ? 'text-transparent' : ''}`}>{service.title}</h3>
-                <p className={`font-medium leading-relaxed ${service.image_url ? 'text-transparent' : config.bg.includes('text-white') ? 'text-white/80' : 'text-navy/60 dark:text-white/60'}`}>{service.description}</p>
-              </div>
-              
-              {/* Expand Detail Overlay */}
-              <div className={`absolute inset-0 bg-navy text-white p-8 flex flex-col justify-between transition-transform duration-500 z-20 ${hoveredId === displayId ? 'translate-y-0' : 'translate-y-full'}`}>
-                 <div>
-                    <h4 className="text-xl font-display font-bold text-orange mb-4">{service.title}</h4>
-                    <p className="text-white/70 font-medium">Click to explore our process, technologies, and case studies related to {service.title.toLowerCase()}.</p>
-                 </div>
-                 <Link to={`/services/${service.id || ''}`} className="text-white font-bold flex items-center gap-2 hover:text-orange transition-colors">
-                    EXPLORE <ArrowRight size={18} />
-                 </Link>
-              </div>
-
-            </motion.div>
-          )})}
-        </div>
+              </motion.div>
+            )})}
+          </div>
+        ) : (
+          <div className="text-center py-16 bg-grey-light dark:bg-navy-light rounded-3xl border border-navy/5">
+            <Layers size={36} className="mx-auto text-orange mb-3" />
+            <h3 className="text-xl font-bold text-navy dark:text-white">Services Loading</h3>
+            <p className="text-grey-medium text-sm mt-1">Services catalog is synced dynamically from database.</p>
+          </div>
+        )}
 
       </div>
     </section>

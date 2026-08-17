@@ -77,12 +77,13 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, passwordField);
     if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
-    const userRole = user.role_name || user.role || 'student';
+    let userRole = user.role_name || user.role || 'student';
+    if (userRole === 'super_admin') userRole = 'admin';
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: userRole },
       JWT_SECRET,
-      { expiresIn: '1d' }
+      { expiresIn: '30d' }
     );
 
     res.json({

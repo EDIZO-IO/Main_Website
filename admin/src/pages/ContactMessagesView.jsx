@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Calendar, Trash2 } from 'lucide-react';
+import { Mail, Calendar, Shield, Globe } from 'lucide-react';
 
 const ContactMessagesView = () => {
   const { token } = useAuth();
@@ -31,7 +31,7 @@ const ContactMessagesView = () => {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2 font-display">Contact Messages</h1>
-        <p className="text-gray-500">Inquiries submitted from the public website.</p>
+        <p className="text-gray-500">Inquiries submitted from the public website with anti-abuse & IP tracking metadata.</p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -42,7 +42,7 @@ const ContactMessagesView = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange/10 text-orange rounded-full flex items-center justify-center font-bold">
-                      {msg.name.charAt(0).toUpperCase()}
+                      {msg.name ? msg.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">{msg.name}</h3>
@@ -55,9 +55,16 @@ const ContactMessagesView = () => {
                     <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
                       <Calendar size={12}/> {new Date(msg.created_at).toLocaleDateString()}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${msg.status === 'unread' ? 'bg-orange/10 text-orange' : 'bg-gray-100 text-gray-500'}`}>
-                      {msg.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {msg.ip_address && (
+                        <span className="px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-mono flex items-center gap-1 border border-gray-200" title={`User Agent: ${msg.user_agent || 'Unknown'}`}>
+                          <Globe size={11} className="text-gray-400" /> {msg.ip_address}
+                        </span>
+                      )}
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${msg.status === 'unread' ? 'bg-orange/10 text-orange' : 'bg-gray-100 text-gray-500'}`}>
+                        {msg.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">

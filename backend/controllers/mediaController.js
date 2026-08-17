@@ -8,6 +8,10 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const getClientIp = (req) => {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || req.ip || null;
+};
+
 exports.uploadMedia = async (req, res) => {
   try {
     if (!req.file) {
@@ -15,25 +19,46 @@ exports.uploadMedia = async (req, res) => {
     }
     const file = req.file;
     const url = `/uploads/${file.filename}`;
+    const userId = req.user ? req.user.id : null;
+    const ipAddress = getClientIp(req);
     
-    const [result] = await db.query(
-      'INSERT INTO media_library (url, file_name, file_type, file_size, alt_text, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
-      [url, file.originalname, file.mimetype, file.size, req.body.alt_text || '', req.user.id]
-    );
+    let resultId = null;
+    try {
+      // Primary: Insert into new file_uploads table
+      const [res1] = await db.query(
+        'INSERT INTO file_uploads (user_id, filename, original_name, mime_type, file_size, file_path, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userId, file.filename, file.originalname, file.mimetype, file.size, url, ipAddress]
+      );
+      resultId = res1.insertId;
+    } catch (e) {
+      // Fallback: Insert into legacy media_library if table exists
+      try {
+        const [res2] = await db.query(
+          'INSERT INTO media_library (url, file_name, file_type, file_size, alt_text, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
+          [url, file.originalname, file.mimetype, file.size, req.body.alt_text || '', userId]
+        );
+        resultId = res2.insertId;
+      } catch (err2) {}
+    }
     
-    res.json({ id: result.insertId, url, message: 'File uploaded successfully' });
+    res.json({ id: resultId, url, message: 'File uploaded successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Upload error:', error);
     res.status(500).json({ error: 'Failed to upload media' });
   }
 };
 
 exports.getMedia = async (req, res) => {
   try {
-    const [media] = await db.query('SELECT * FROM media_library ORDER BY created_at DESC');
+    let media = [];
+    try {
+      [media] = await db.query('SELECT id, filename as file_name, file_path as url, mime_type as file_type, file_size, created_at FROM file_uploads WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    } catch (e) {
+      [media] = await db.query('SELECT * FROM media_library ORDER BY created_at DESC');
+    }
     res.json(media);
   } catch (error) {
-    console.error(error);
+    console.error('Fetch media error:', error);
     res.status(500).json({ error: 'Failed to fetch media' });
   }
 };
@@ -41,18 +66,14 @@ exports.getMedia = async (req, res) => {
 exports.deleteMedia = async (req, res) => {
   const { id } = req.params;
   try {
-    const [media] = await db.query('SELECT * FROM media_library WHERE id = ?', [id]);
-    if (media.length === 0) return res.status(404).json({ error: 'Media not found' });
-    
-    const filePath = path.join(__dirname, '..', 'public', media[0].url);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      await db.query('UPDATE file_uploads SET deleted_at = NOW() WHERE id = ?', [id]);
+    } catch (e) {
+      await db.query('DELETE FROM media_library WHERE id = ?', [id]);
     }
-    
-    await db.query('DELETE FROM media_library WHERE id = ?', [id]);
     res.json({ message: 'Media deleted successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Delete media error:', error);
     res.status(500).json({ error: 'Failed to delete media' });
   }
 };

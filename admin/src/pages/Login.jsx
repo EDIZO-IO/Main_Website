@@ -34,8 +34,8 @@ const Login = () => {
         throw new Error(data.error || 'Login failed');
       }
 
-      if (data.user.role !== 'admin') {
-        throw new Error('Access denied. Admin only.');
+      if (data.user.role !== 'admin' && data.user.role !== 'super_admin' && data.user.role_id !== 1 && data.user.role_id !== 2) {
+        throw new Error('Access denied. Admin access required.');
       }
 
       login(data.token, data.user);
