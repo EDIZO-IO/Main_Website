@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, User, Moon, Sun } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import logoImg from '../assets/images/edizo_logo.png';
@@ -11,8 +11,31 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize dark mode from localStorage or system preference
+  useEffect(() => {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+      setIsDarkMode(true);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,68 +46,76 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Internships', href: '/internships' },
-    { name: 'Services', href: '/services' },
-    { name: 'About Us', href: '/about' },
+    { name: 'HOW WE WORK', href: '/#how-we-work' },
+    { name: 'SERVICES', href: '/services' },
+    { name: 'PROJECTS', href: '/projects' },
+    { name: 'INTERNSHIP', href: '/internships' },
+    { name: 'ABOUT', href: '/about' },
+    { name: 'CONTACT', href: '/contact' },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled || location.pathname !== '/' ? 'glass py-4' : 'bg-transparent py-6'}`}>
+    <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled || location.pathname !== '/' ? 'glass py-3' : 'bg-transparent py-6'}`}>
       <div className="container mx-auto px-6 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logoImg} alt="EDIZO Logo" className="h-10 w-auto object-contain" />
-          <img src={nameImg} alt="EDIZO" className="h-6 w-auto object-contain mt-1" />
+          <img src={logoImg} alt="EDIZO Logo" className="h-9 w-auto object-contain dark:invert dark:brightness-0" />
+          <img src={nameImg} alt="EDIZO" className="h-5 w-auto object-contain mt-1 dark:invert dark:brightness-0" />
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link key={link.name} to={link.href} className={`font-medium transition-colors ${location.pathname === link.href ? 'text-orange' : 'text-grey-medium hover:text-orange'}`}>
+            <Link key={link.name} to={link.href} className={`text-sm font-semibold tracking-wide transition-colors ${location.pathname === link.href ? 'text-orange' : 'text-navy hover:text-orange'}`}>
               {link.name}
             </Link>
           ))}
-          
-          <div className="flex items-center gap-4 border-l border-grey-silver pl-8">
+        </div>
+
+        <div className="hidden lg:flex items-center gap-4">
+            <button 
+                onClick={toggleDarkMode} 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-navy hover:bg-navy/5 transition-all"
+                aria-label="Toggle Dark Mode"
+            >
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard" className="flex items-center gap-2 font-medium text-grey-dark hover:text-orange transition-colors">
-                  <User size={18} /> Dashboard
+                <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-full border border-navy/10 text-navy text-sm font-bold hover:bg-orange hover:text-white hover:border-orange transition-all dark:text-white dark:border-white/20">
+                    <User size={16} />
+                    DASHBOARD
                 </Link>
-                <button onClick={handleLogout} className="flex items-center gap-2 font-medium text-red-500 hover:text-red-600 transition-colors">
-                  <LogOut size={18} /> Logout
+                <button onClick={logout} className="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors dark:text-white/60">
+                  LOGOUT
                 </button>
               </>
             ) : (
-              <>
-                <Link to="/login" className="flex items-center gap-2 font-medium text-grey-dark hover:text-orange transition-colors">
-                  <LogIn size={18} /> Login
-                </Link>
-                <Link to="/register" className="px-5 py-2.5 bg-orange text-white rounded-full font-bold hover:bg-orange-dark transition-all shadow-md hover:shadow-lg">
-                  Register
-                </Link>
-              </>
+              <Link to="/login" className="w-10 h-10 rounded-full border border-navy/10 flex items-center justify-center text-navy hover:bg-orange hover:text-white hover:border-orange transition-all dark:text-white dark:border-white/20">
+                  <User size={18} />
+              </Link>
             )}
-            <Link to="/contact" className="px-5 py-2.5 bg-grey-dark text-white rounded-full font-medium hover:bg-black transition-colors ml-2">
-              Let's Talk
+            <Link to="/contact" className="px-6 py-2.5 bg-navy dark:bg-white dark:text-navy text-white rounded-full text-sm font-semibold hover:bg-orange dark:hover:bg-orange dark:hover:text-white transition-all shadow-md">
+              START A PROJECT
             </Link>
-          </div>
         </div>
 
-        {/* Mobile Toggle */}
-        <button 
-          className="md:hidden text-grey-dark"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+        {/* Mobile Toggle & Dark Mode */}
+        <div className="lg:hidden flex items-center gap-2">
+          <button 
+            onClick={toggleDarkMode} 
+            className="w-10 h-10 rounded-full flex items-center justify-center text-navy hover:bg-navy/5 transition-all"
+            aria-label="Toggle Dark Mode"
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button 
+            className="text-navy p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -94,39 +125,27 @@ const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden glass border-t border-white/20 mt-4 overflow-hidden"
+            className="lg:hidden glass border-t border-white/20 mt-4 overflow-hidden"
           >
-            <div className="flex flex-col px-6 py-4 gap-4">
+            <div className="flex flex-col px-6 py-6 gap-4">
               {navLinks.map((link) => (
-                <Link key={link.name} to={link.href} onClick={() => setMobileMenuOpen(false)} className={`font-medium text-lg border-b border-grey-silver/50 pb-2 ${location.pathname === link.href ? 'text-orange' : 'text-grey-dark'}`}>
+                <Link key={link.name} to={link.href} onClick={() => setMobileMenuOpen(false)} className={`font-display font-bold text-xl border-b border-navy/5 pb-3 ${location.pathname === link.href ? 'text-orange' : 'text-navy'}`}>
                   {link.name}
                 </Link>
               ))}
+              {isAuthenticated && (
+                <>
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="font-display font-bold text-xl border-b border-navy/5 pb-3 text-orange flex items-center gap-2">
+                    <User size={20} /> DASHBOARD
+                  </Link>
+                  <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="text-left font-display font-bold text-xl border-b border-navy/5 pb-3 text-red-500">
+                    LOGOUT
+                  </button>
+                </>
+              )}
               
-              <div className="border-b border-grey-silver/50 pb-4 flex flex-col gap-3">
-                {isAuthenticated ? (
-                  <>
-                    <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 font-medium text-lg text-grey-dark">
-                      <User size={18} /> Dashboard
-                    </Link>
-                    <button onClick={handleLogout} className="flex items-center gap-2 font-medium text-lg text-red-500">
-                      <LogOut size={18} /> Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 font-medium text-lg text-grey-dark">
-                      <LogIn size={18} /> Login
-                    </Link>
-                    <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 font-medium text-lg text-grey-dark">
-                      <User size={18} /> Register
-                    </Link>
-                  </>
-                )}
-              </div>
-              
-              <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="w-full text-center mt-2 px-6 py-3 bg-orange text-white rounded-lg font-medium">
-                Let's Talk
+              <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="w-full text-center mt-4 px-6 py-4 bg-navy dark:bg-white dark:text-navy text-white rounded-xl font-display font-bold text-lg">
+                START A PROJECT
               </Link>
             </div>
           </motion.div>

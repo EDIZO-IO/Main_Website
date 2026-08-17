@@ -1,22 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const whatsappService = require('../services/whatsappService');
 
 // @route   POST /api/contact
 // @desc    Submit a contact message
 // @access  Public
 router.post('/', async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const { name, email, phone, subject, message } = req.body;
     
     if (!name || !email || !message) {
       return res.status(400).json({ message: 'Name, email, and message are required' });
     }
 
     const [result] = await db.query(
-      'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
-      [name, email, subject || 'General Inquiry', message]
+      'INSERT INTO contact_messages (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)',
+      [name, email, phone || null, subject || 'General Inquiry', message]
     );
+
+    if (phone) {
+      const waMessage = `Hi ${name},\n\nThank you for reaching out to EDIZO!\n\nWe have received your message regarding "${subject || 'General Inquiry'}". Our team will review your inquiry and get back to you shortly.\n\nBest regards,\nEDIZO Team`;
+      whatsappService.enqueueMessage(phone, waMessage);
+    }
 
     res.status(201).json({ message: 'Message sent successfully', id: result.insertId });
   } catch (error) {

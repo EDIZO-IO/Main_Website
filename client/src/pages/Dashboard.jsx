@@ -14,7 +14,7 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://100.110.78.25:5000';
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const response = await fetch(`${API_URL}/api/dashboard`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -46,6 +46,10 @@ const Dashboard = () => {
     );
   }
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   const isClient = user.role === 'client';
   const totalItems = isClient ? data?.requests?.length || 0 : data?.applications?.length || 0;
   const pendingItems = isClient 
@@ -68,27 +72,27 @@ const Dashboard = () => {
       <div className="container mx-auto px-6 max-w-6xl">
         
         {/* Welcome Banner */}
-        <motion.div {...fadeIn} className="relative bg-gradient-to-br from-grey-dark to-black rounded-[2.5rem] p-8 md:p-12 mb-10 overflow-hidden text-white shadow-xl">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-orange rounded-full mix-blend-screen filter blur-[100px] opacity-30" />
+        <motion.div {...fadeIn} className="relative bg-[#0a1128] rounded-[2.5rem] p-8 md:p-12 mb-10 overflow-hidden text-white shadow-2xl">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange rounded-full mix-blend-screen filter blur-[120px] opacity-20 translate-x-1/3 -translate-y-1/3" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-bold text-xl border border-white/20 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center font-display font-bold text-2xl border border-white/10 backdrop-blur-md text-white">
                   {user.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <span className="text-xs font-bold text-orange uppercase tracking-wider">{user.role} Account</span>
-                  <p className="text-white/70 text-sm">{user.email}</p>
+                  <p className="text-white/60 text-sm font-medium">{user.email}</p>
                 </div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-display font-bold mb-2">Welcome back, {user.name}</h1>
+              <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white">Welcome back, {user.name}</h1>
               <p className="text-white/70 max-w-lg">
                 {isClient ? 'Manage your active service requests and explore new project possibilities.' : 'Track your internship applications and prepare for your next career step.'}
               </p>
             </div>
             
             <div className="flex gap-4">
-              <button className="px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl font-bold transition-colors">
+              <button className="px-8 py-3.5 bg-orange hover:bg-[#e04f1a] text-white rounded-xl font-bold transition-colors shadow-lg shadow-orange/20">
                 Edit Profile
               </button>
             </div>
@@ -103,28 +107,28 @@ const Dashboard = () => {
             {/* Quick Stats Grid */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="grid grid-cols-3 gap-4"
+              className="grid grid-cols-3 gap-6"
             >
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-orange/10 rounded-full flex items-center justify-center text-orange mb-3">
-                  <LayoutGrid size={20} />
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md hover:border-orange/20 transition-all flex flex-col items-center justify-center text-center group cursor-default">
+                <div className="w-12 h-12 bg-gray-50 group-hover:bg-orange/10 rounded-full flex items-center justify-center text-gray-400 group-hover:text-orange mb-4 transition-colors">
+                  <LayoutGrid size={24} />
                 </div>
-                <h3 className="text-3xl font-display font-bold text-grey-dark mb-1">{totalItems}</h3>
-                <p className="text-xs font-bold text-grey-medium uppercase">Total {isClient ? 'Projects' : 'Apps'}</p>
+                <h3 className="text-4xl font-display font-bold text-[#0a1128] mb-1">{totalItems}</h3>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total {isClient ? 'Projects' : 'Apps'}</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-3">
-                  <Clock size={20} />
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-500/20 transition-all flex flex-col items-center justify-center text-center group cursor-default">
+                <div className="w-12 h-12 bg-gray-50 group-hover:bg-blue-500/10 rounded-full flex items-center justify-center text-gray-400 group-hover:text-blue-500 mb-4 transition-colors">
+                  <Clock size={24} />
                 </div>
-                <h3 className="text-3xl font-display font-bold text-grey-dark mb-1">{pendingItems}</h3>
-                <p className="text-xs font-bold text-grey-medium uppercase">Pending</p>
+                <h3 className="text-4xl font-display font-bold text-[#0a1128] mb-1">{pendingItems}</h3>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 mb-3">
-                  <CheckCircle2 size={20} />
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md hover:border-green-500/20 transition-all flex flex-col items-center justify-center text-center group cursor-default">
+                <div className="w-12 h-12 bg-gray-50 group-hover:bg-green-500/10 rounded-full flex items-center justify-center text-gray-400 group-hover:text-green-500 mb-4 transition-colors">
+                  <CheckCircle2 size={24} />
                 </div>
-                <h3 className="text-3xl font-display font-bold text-grey-dark mb-1">{approvedItems}</h3>
-                <p className="text-xs font-bold text-grey-medium uppercase">Approved</p>
+                <h3 className="text-4xl font-display font-bold text-[#0a1128] mb-1">{approvedItems}</h3>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Approved</p>
               </div>
             </motion.div>
 
@@ -132,8 +136,10 @@ const Dashboard = () => {
             <motion.div 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             >
-              <h2 className="text-2xl font-bold text-grey-dark mb-6 flex items-center gap-2">
-                {isClient ? <Briefcase className="text-orange"/> : <FileText className="text-orange"/>}
+              <h2 className="text-2xl font-display font-bold text-[#0a1128] mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center">
+                  {isClient ? <Briefcase size={18} className="text-orange"/> : <FileText size={18} className="text-orange"/>}
+                </div>
                 Active {isClient ? 'Service Requests' : 'Applications'}
               </h2>
               

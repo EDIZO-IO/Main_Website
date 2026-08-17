@@ -9,7 +9,7 @@ const EditInternshipView = () => {
   const { id } = useParams();
   const [internshipForm, setInternshipForm] = useState({ 
     title: '', category: 'Engineering', company: '', duration: '', mode: 'Remote', 
-    description: '', syllabus: '', benefits: '', eligibility: '', status: 'active', stipend: '', price: '' 
+    description: '', syllabus: '', benefits: '', eligibility: '', status: 'active', stipend: '', price: '', image: ''
   });
   const [loading, setLoading] = useState(true);
 
@@ -47,14 +47,84 @@ const EditInternshipView = () => {
     e.preventDefault();
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await fetch(`${baseUrl}/api/admin/internships/${id}`, {
+      const res = await fetch(`${baseUrl}/api/admin/internships/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(internshipForm)
       });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update internship');
+      }
       navigate('/internships');
     } catch (error) {
       console.error(error);
+      alert(error.message || 'Failed to update internship');
+    }
+  };
+
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 1200;
+          
+          if (width > height && width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadFile = await compressImage(file);
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${baseUrl}/api/media/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.url) {
+        setInternshipForm({ ...internshipForm, image: data.url });
+      }
+    } catch (err) {
+      console.error('Image upload failed', err);
+      alert('Failed to upload image.');
     }
   };
 
@@ -136,6 +206,30 @@ const EditInternshipView = () => {
               <label className="block text-sm font-bold text-gray-700 mb-2">Company Name</label>
               <input type="text" placeholder="Edizo, Tech Corp, etc." value={internshipForm.company} onChange={e => setInternshipForm({...internshipForm, company: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange/20 outline-none" />
             </div>
+          </div>
+        </div>
+
+        {/* Media Upload */}
+        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange/10 flex items-center justify-center text-orange"><Upload size={16}/></div>
+            Internship Image
+          </h3>
+          <div className="flex gap-6 items-start">
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Upload Image</label>
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-orange/10 file:text-orange hover:file:bg-orange/20 cursor-pointer" />
+              <p className="text-xs text-gray-500 mt-2">Recommended size: 800x600 pixels. Format: JPG, PNG, WEBP.</p>
+            </div>
+            {internshipForm.image && internshipForm.image !== '/images/internship.png' && (
+              <div className="w-48 h-32 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                <img 
+                  src={internshipForm.image.startsWith('http') ? internshipForm.image : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${internshipForm.image}`} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+            )}
           </div>
         </div>
 

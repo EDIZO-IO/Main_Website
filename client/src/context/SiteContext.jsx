@@ -9,7 +9,7 @@ export const SiteProvider = ({ children }) => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://100.110.78.25:5000';
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_URL}/api/settings`);
         if (res.ok) {
           const data = await res.json();

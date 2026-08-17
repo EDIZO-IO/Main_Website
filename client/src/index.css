@@ -1,57 +1,156 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sora:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-orange: #FF5A1F;
-  --color-orange-dark: #E04812;
-  --color-orange-light: #FF855C;
+  --color-orange: var(--theme-orange);
+  --color-orange-dark: var(--theme-orange-dark);
+  --color-orange-light: var(--theme-orange-light);
 
-  --color-grey-light: #FAFAFA;
-  --color-grey-silver: #EAEAEA;
-  --color-grey-medium: #888888;
-  --color-grey-dark: #111111;
+  --color-navy: var(--theme-navy);
+  --color-navy-light: var(--theme-navy-light);
+
+  --color-grey-light: var(--theme-grey-light);
+  --color-grey-silver: var(--theme-grey-silver);
+  --color-grey-medium: var(--theme-grey-medium);
+  --color-grey-dark: var(--theme-grey-dark);
 
   --font-sans: 'Inter', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-sora: 'Sora', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+:root {
+  --theme-orange: #FF5A1F;
+  --theme-orange-dark: #E04812;
+  --theme-orange-light: #FF855C;
+
+  --theme-navy: #0B132B;
+  --theme-navy-light: #1C2541;
+
+  --theme-grey-light: #F8F9FA;
+  --theme-grey-silver: #EAEAEA;
+  --theme-grey-medium: #888888;
+  --theme-grey-dark: #333333;
+}
+
+.dark {
+  /* In dark mode, navy (text/primary dark color) becomes white/light gray */
+  --theme-navy: #F8F9FA; 
+  --theme-navy-light: #EAEAEA;
+
+  /* grey-light (main background) becomes deep navy */
+  --theme-grey-light: #050B14;
+  /* white (cards) becomes slightly lighter navy */
+  --theme-grey-silver: #0A1120;
+  --theme-grey-dark: #F8F9FA;
+}
+
+/* Custom mapping for white backgrounds in dark mode */
+.dark .bg-white {
+  background-color: #0A1120;
+}
+.dark .text-white {
+  color: #050B14; /* For things that were inverted */
+}
+/* Re-invert buttons that were navy (now white) and text white (now navy) */
+.dark .bg-navy.text-white {
+  background-color: #F8F9FA;
+  color: #050B14;
+}
+.dark .text-navy {
+  color: #F8F9FA;
 }
 
 @layer base {
   body {
-    @apply text-grey-dark bg-white font-sans overflow-x-hidden m-0 p-0 antialiased;
+    @apply bg-grey-light text-navy font-sans overflow-x-hidden m-0 p-0 antialiased transition-colors duration-300;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-bold tracking-tight text-navy;
   }
 }
 
 .glass {
+  background: rgba(var(--theme-grey-light-rgb, 255, 255, 255), 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(var(--theme-navy-rgb, 11, 19, 43), 0.1);
+}
+.dark .glass {
+  background: rgba(10, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
   background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(11, 19, 43, 0.05);
+  box-shadow: 0 10px 40px -10px rgba(11, 19, 43, 0.1);
+  border-radius: 2.5rem;
 }
-
-.text-gradient {
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(135deg, #111111 0%, #FF5A1F 100%);
-}
-
-.bg-gradient-premium {
-  background: radial-gradient(circle at top center, rgba(255,90,31,0.05) 0%, rgba(255,255,255,0) 70%);
+.dark .glass-card {
+  background: rgba(10, 17, 32, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
 }
 
 .premium-card {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(11, 19, 43, 0.06);
+  border-radius: 3rem;
+  box-shadow: 0 4px 20px -2px rgba(11, 19, 43, 0.03);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark .premium-card {
+  background: #0A1120;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
 }
 
 .premium-card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-  border-color: rgba(255, 90, 31, 0.2);
+  box-shadow: 0 20px 40px -5px rgba(11, 19, 43, 0.08);
+  border-color: rgba(255, 90, 31, 0.15);
+  transform: translateY(-6px);
+}
+.dark .premium-card:hover {
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.5);
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+}
+
+.dark .animate-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.02) 20%,
+    rgba(255, 255, 255, 0.05) 60%,
+    rgba(255, 255, 255, 0)
+  );
+}

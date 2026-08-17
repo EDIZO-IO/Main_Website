@@ -4,6 +4,8 @@ import Footer from './components/Footer';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SiteProvider } from './context/SiteContext';
 import { HelmetProvider } from 'react-helmet-async';
+import CustomCursor from './components/CustomCursor';
+import WhatsAppBubble from './components/WhatsAppBubble';
 
 // Pages
 import Home from './pages/Home';
@@ -63,6 +65,8 @@ function App() {
                 </Routes>
               </main>
               <Footer />
+              <WhatsAppBubble />
+              <CustomCursor />
             </div>
           </Router>
         </SiteProvider>

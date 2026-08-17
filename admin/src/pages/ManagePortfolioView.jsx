@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, CheckCircle, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle, Save, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const fetchApi = async (url, options = {}, token) => {
@@ -28,6 +28,7 @@ const ManagePortfolioView = () => {
     client: '',
     category: '',
     description: '',
+    image_url: '',
     color: 'bg-blue-500'
   });
 
@@ -54,8 +55,75 @@ const ManagePortfolioView = () => {
       client: proj.client,
       category: proj.category,
       description: proj.description,
+      image_url: proj.image_url || '',
       color: proj.color || 'bg-blue-500'
     });
+  };
+
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 1200;
+          
+          if (width > height && width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadFile = await compressImage(file);
+
+    const uploadData = new FormData();
+    uploadData.append('file', uploadFile);
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${baseUrl}/api/media/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadData
+      });
+      const data = await res.json();
+      if (data.url) {
+        setFormData({ ...formData, image_url: data.url });
+      }
+    } catch (err) {
+      console.error('Image upload failed', err);
+      alert('Failed to upload image.');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -81,7 +149,7 @@ const ManagePortfolioView = () => {
       }
       setTimeout(() => setSuccessMsg(''), 3000);
       setEditId(null);
-      setFormData({ title: '', client: '', category: '', description: '', color: 'bg-blue-500' });
+      setFormData({ title: '', client: '', category: '', description: '', image_url: '', color: 'bg-blue-500' });
       loadProjects();
     } catch (err) {
       console.error(err);
@@ -129,10 +197,23 @@ const ManagePortfolioView = () => {
             <label className="block text-sm font-bold text-gray-700 mb-2">Color (Tailwind bg class, e.g. bg-blue-500, bg-orange)</label>
             <input type="text" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange" />
           </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Project Image</label>
+            <div className="flex gap-6 items-start">
+              <div className="flex-1">
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-500/10 file:text-blue-500 hover:file:bg-blue-500/20 cursor-pointer" />
+              </div>
+              {formData.image_url && (
+                <div className="w-32 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                  <img src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${formData.image_url}`} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div className="mt-6 flex justify-end gap-4">
           {editId && (
-            <button onClick={() => { setEditId(null); setFormData({ title: '', client: '', category: '', description: '', color: 'bg-blue-500' }); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+            <button onClick={() => { setEditId(null); setFormData({ title: '', client: '', category: '', description: '', image_url: '', color: 'bg-blue-500' }); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
               Cancel
             </button>
           )}

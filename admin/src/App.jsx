@@ -11,13 +11,12 @@ import ServicesView from './pages/ServicesView';
 import CreateServiceView from './pages/CreateServiceView';
 import EditServiceView from './pages/EditServiceView';
 import ServiceRequestsView from './pages/ServiceRequestsView';
-import ContactMessagesView from './pages/ContactMessagesView';
+import LeadsInboxView from './pages/LeadsInboxView';
 import UsersView from './pages/UsersView';
 import SettingsView from './pages/SettingsView';
-import ManageAboutView from './pages/ManageAboutView';
-import ManageHomeView from './pages/ManageHomeView';
-import ManageContactView from './pages/ManageContactView';
 import ManagePortfolioView from './pages/ManagePortfolioView';
+import ManageTeamView from './pages/ManageTeamView';
+import WhatsAppManager from './pages/WhatsAppManager';
 
 function App() {
   return (
@@ -36,12 +35,11 @@ function App() {
             <Route path="services" element={<ServicesView />} />
             <Route path="services/new" element={<CreateServiceView />} />
             <Route path="services/:id/edit" element={<EditServiceView />} />
-            <Route path="messages" element={<ContactMessagesView />} />
+            <Route path="messages" element={<LeadsInboxView />} />
             <Route path="users" element={<UsersView />} />
-            <Route path="home-page" element={<ManageHomeView />} />
-            <Route path="about-page" element={<ManageAboutView />} />
-            <Route path="contact-page" element={<ManageContactView />} />
             <Route path="portfolio" element={<ManagePortfolioView />} />
+            <Route path="team" element={<ManageTeamView />} />
+            <Route path="whatsapp" element={<WhatsAppManager />} />
             <Route path="settings" element={<SettingsView />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

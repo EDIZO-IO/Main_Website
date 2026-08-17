@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const whatsappService = require('../services/whatsappService');
 const router = express.Router();
 
 router.get('/dashboard', authenticateToken, async (req, res) => {
@@ -28,6 +29,14 @@ router.post('/applications', authenticateToken, async (req, res) => {
       'INSERT INTO applications (user_id, internship_id, status) VALUES (?, ?, ?)',
       [user_id, internship_id, status || 'pending']
     );
+
+    // Fetch user details to send WhatsApp notification
+    const [userRows] = await pool.query('SELECT name, phone FROM users WHERE id = ?', [user_id]);
+    if (userRows.length > 0 && userRows[0].phone) {
+      const waMessage = `Hi ${userRows[0].name},\n\nThank you for applying for an internship at EDIZO!\n\nYour application has been received successfully. Our team will review your profile and get back to you with the next steps shortly.\n\nBest regards,\nEDIZO Team`;
+      whatsappService.enqueueMessage(userRows[0].phone, waMessage);
+    }
+
     res.json({ success: true, id: result.insertId });
   } catch (error) {
     res.status(500).json({ error: 'Failed to submit application' });
@@ -42,6 +51,14 @@ router.post('/requests', authenticateToken, async (req, res) => {
       'INSERT INTO service_requests (user_id, service_id, requirements, status) VALUES (?, ?, ?, ?)',
       [user_id, service_id, requirements, status || 'pending']
     );
+
+    // Fetch user details to send WhatsApp notification
+    const [userRows] = await pool.query('SELECT name, phone FROM users WHERE id = ?', [user_id]);
+    if (userRows.length > 0 && userRows[0].phone) {
+      const waMessage = `Hi ${userRows[0].name},\n\nThank you for choosing EDIZO!\n\nWe have received your service request. Our team will review your requirements and reach out to you to discuss the project in detail.\n\nBest regards,\nEDIZO Team`;
+      whatsappService.enqueueMessage(userRows[0].phone, waMessage);
+    }
+
     res.json({ success: true, id: result.insertId });
   } catch (error) {
     res.status(500).json({ error: 'Failed to submit service request' });
