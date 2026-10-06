@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://edizotech.in/sitemap.xml

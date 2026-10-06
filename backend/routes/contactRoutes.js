@@ -60,4 +60,19 @@ router.get('/config', async (req, res) => {
   }
 });
 
+// @route   GET /api/contact
+// @desc    Get recent contact messages
+// @access  Admin / Authenticated
+router.get('/', async (req, res) => {
+  try {
+    const [messages] = await db.query('SELECT * FROM contact_messages ORDER BY created_at DESC LIMIT 50');
+    res.json({ success: true, count: messages.length, data: messages });
+  } catch (error) {
+    console.error('Error fetching contact messages:', error.message);
+    res.status(500).json({ success: false, message: 'Server error fetching contact messages' });
+  }
+});
+
 module.exports = router;
+
+

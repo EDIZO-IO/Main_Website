@@ -38,21 +38,191 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+router.get('/dashboard-analytics', async (req, res) => {
+  try {
+    // 1. KPI Counts & Monthly Deltas
+    const [totalUsers] = await pool.query('SELECT COUNT(*) as count FROM users');
+    const [usersThisMonth] = await pool.query('SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+
+    const [totalApps] = await pool.query('SELECT COUNT(*) as count FROM applications');
+    const [appsThisMonth] = await pool.query('SELECT COUNT(*) as count FROM applications WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+
+    const [totalReqs] = await pool.query('SELECT COUNT(*) as count FROM service_requests');
+    const [reqsThisMonth] = await pool.query('SELECT COUNT(*) as count FROM service_requests WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+
+    let activeProjectsCount = 0, projectsThisMonth = 0;
+    try {
+      const [projRows] = await pool.query('SELECT COUNT(*) as count FROM projects WHERE status IN ("active", "in_progress", "planning")');
+      activeProjectsCount = projRows[0]?.count || 0;
+      const [projMonthRows] = await pool.query('SELECT COUNT(*) as count FROM projects WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+      projectsThisMonth = projMonthRows[0]?.count || 0;
+    } catch (e) {
+      activeProjectsCount = 0;
+    }
+
+    let revenueThisMonth = 0, invoiceCount = 0;
+    try {
+      const [invRows] = await pool.query('SELECT COALESCE(SUM(amount_paid), 0) as total, COUNT(*) as count FROM invoices WHERE status = "paid"');
+      revenueThisMonth = Number(invRows[0]?.total || 0);
+      invoiceCount = invRows[0]?.count || 0;
+    } catch (e) {
+      revenueThisMonth = 0;
+    }
+
+    // 2. User Distribution Breakdown by Role
+    let userDistribution = [];
+    try {
+      const [roleRows] = await pool.query(`
+        SELECT COALESCE(r.name, 'Student / Intern') as role_name, COUNT(u.id) as count
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        GROUP BY role_name
+      `);
+      userDistribution = roleRows;
+    } catch (e) {
+      const [roleRowsFallback] = await pool.query(`
+        SELECT COALESCE(role, 'student') as role_name, COUNT(id) as count
+        FROM users
+        GROUP BY role_name
+      `);
+      userDistribution = roleRowsFallback;
+    }
+
+    // 3. Time Series Data (Daily buckets for last 30 days)
+    const [reqsByDay] = await pool.query(`
+      SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as day_key, COUNT(*) as count
+      FROM service_requests
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY day_key
+    `);
+    const [appsByDay] = await pool.query(`
+      SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as day_key, COUNT(*) as count
+      FROM applications
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY day_key
+    `);
+    const [usersByDay] = await pool.query(`
+      SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as day_key, COUNT(*) as count
+      FROM users
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY day_key
+    `);
+
+    let projectsByDay = [];
+    try {
+      const [pDay] = await pool.query(`
+        SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as day_key, COUNT(*) as count
+        FROM projects
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY day_key
+      `);
+      projectsByDay = pDay;
+    } catch (e) {
+      projectsByDay = [];
+    }
+
+    // 4. Pending / Action Item Counts
+    let pendingFollowUps = 0;
+    try {
+      const [leadRows] = await pool.query('SELECT COUNT(*) as count FROM leads WHERE status IN ("new", "contacted", "qualified")');
+      pendingFollowUps = leadRows[0]?.count || 0;
+    } catch (e) {
+      pendingFollowUps = 0;
+    }
+
+    let pendingApprovals = 0;
+    try {
+      const [appRows] = await pool.query('SELECT COUNT(*) as count FROM applications WHERE status = "pending"');
+      pendingApprovals = appRows[0]?.count || 0;
+    } catch (e) {
+      pendingApprovals = 0;
+    }
+
+    let openTickets = 0;
+    try {
+      const [ticketRows] = await pool.query('SELECT COUNT(*) as count FROM tickets WHERE status IN ("open", "in_progress")');
+      openTickets = ticketRows[0]?.count || 0;
+    } catch (e) {
+      openTickets = 0;
+    }
+
+    // 5. Today's Tasks
+    let tasksList = [];
+    try {
+      const [taskRows] = await pool.query(`
+        SELECT id, title, status, due_date, priority 
+        FROM project_tasks 
+        ORDER BY status = 'completed' ASC, created_at DESC 
+        LIMIT 6
+      `);
+      tasksList = taskRows;
+    } catch (e) {
+      tasksList = [];
+    }
+
+    res.json({
+      kpi: {
+        total_users: totalUsers[0]?.count || 0,
+        users_this_month: usersThisMonth[0]?.count || 0,
+        total_applications: totalApps[0]?.count || 0,
+        apps_this_month: appsThisMonth[0]?.count || 0,
+        total_requests: totalReqs[0]?.count || 0,
+        requests_this_month: reqsThisMonth[0]?.count || 0,
+        active_projects: activeProjectsCount,
+        projects_this_month: projectsThisMonth,
+        revenue_this_month: revenueThisMonth,
+        invoices_count: invoiceCount
+      },
+      distribution: userDistribution,
+      timeSeries: {
+        requests: reqsByDay,
+        applications: appsByDay,
+        users: usersByDay,
+        projects: projectsByDay
+      },
+      statusCounters: {
+        pending_followups: pendingFollowUps,
+        pending_approvals: pendingApprovals,
+        open_tickets: openTickets
+      },
+      todayTasks: tasksList
+    });
+  } catch (error) {
+    console.error("fetch dashboard analytics error:", error);
+    res.status(500).json({ error: 'Failed to fetch dashboard analytics' });
+  }
+});
+
 router.get('/recent-activity', async (req, res) => {
   try {
-    let recentUsers = [], recentApps = [], recentReqs = [];
+    let recentUsers = [], recentApps = [], recentReqs = [], recentTickets = [];
     try {
-      [recentUsers] = await pool.query('SELECT u.id, u.name, u.email, COALESCE(r.name, "user") as role, u.created_at, "user" as type FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC LIMIT 5');
+      [recentUsers] = await pool.query('SELECT u.id, u.name, u.email, COALESCE(r.name, "user") as role, u.created_at, "user" as type FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC LIMIT 6');
     } catch (e) {
-      [recentUsers] = await pool.query('SELECT id, name, email, role, created_at, "user" as type FROM users ORDER BY created_at DESC LIMIT 5');
+      [recentUsers] = await pool.query('SELECT id, name, email, role, created_at, "user" as type FROM users ORDER BY created_at DESC LIMIT 6');
     }
     
-    [recentApps] = await pool.query('SELECT a.id, COALESCE(u.name, a.first_name) as name, a.internship_id as target, a.status, a.created_at, "application" as type FROM applications a LEFT JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 5');
-    [recentReqs] = await pool.query('SELECT r.id, COALESCE(u.name, "Client") as name, r.service_id as target, r.status, r.created_at, "request" as type FROM service_requests r LEFT JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC LIMIT 5');
+    try {
+      [recentApps] = await pool.query('SELECT a.id, COALESCE(u.name, CONCAT(COALESCE(a.first_name,""), " ", COALESCE(a.last_name,""))) as name, a.internship_id as target, a.status, a.created_at, "application" as type FROM applications a LEFT JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 6');
+    } catch (e) {
+      recentApps = [];
+    }
+
+    try {
+      [recentReqs] = await pool.query('SELECT r.id, COALESCE(u.name, "Client") as name, r.service_id as target, r.status, r.created_at, "request" as type FROM service_requests r LEFT JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC LIMIT 6');
+    } catch (e) {
+      recentReqs = [];
+    }
+
+    try {
+      [recentTickets] = await pool.query('SELECT t.id, COALESCE(u.name, "Client") as name, t.subject as target, t.status, t.created_at, "ticket" as type FROM tickets t LEFT JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 4');
+    } catch (e) {
+      recentTickets = [];
+    }
     
-    const allActivity = [...recentUsers, ...recentApps, ...recentReqs]
+    const allActivity = [...recentUsers, ...recentApps, ...recentReqs, ...recentTickets]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 8);
+      .slice(0, 10);
       
     res.json(allActivity);
   } catch (error) {
@@ -308,6 +478,40 @@ router.put('/applications/:id/status', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update application status' });
+  }
+});
+
+// Delete Application
+router.delete('/applications/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM applications WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// Update Service Request Status
+router.put('/requests/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await pool.query('UPDATE service_requests SET status = ? WHERE id = ?', [status, id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update request status' });
+  }
+});
+
+// Delete Service Request
+router.delete('/requests/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM service_requests WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete request' });
   }
 });
 

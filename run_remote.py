@@ -13,7 +13,7 @@ def main():
         print(f"Connecting to {HOST}:{PORT}...")
         ssh.connect(HOST, port=PORT, username=USER, password=PASSWORD)
         
-        cmd = "cd /home/server/My_Sites/edizo/backend && node alter_db.js && node update_services_catalog.js && node update_internships.js && node update_about_contact_seed.js"
+        cmd = "curl -i https://edizotech.in/robots.txt && curl -i https://edizotech.in/sitemap.xml"
         print(f"Running: {cmd}")
         stdin, stdout, stderr = ssh.exec_command(cmd)
         

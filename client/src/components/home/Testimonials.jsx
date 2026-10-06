@@ -2,57 +2,35 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Quote, Loader2 } from 'lucide-react';
 
-const fallbackTestimonials = [
-  {
-    id: 1,
-    name: "Sarah Jenkins",
-    role: "CTO",
-    company: "TechFlow",
-    content: "EDIZO didn't just build our app; they completely reimagined our digital strategy. Their attention to detail and engineering quality is unmatched.",
-    image_url: "https://i.pravatar.cc/150?img=47"
-  },
-  {
-    id: 2,
-    name: "Marcus Aurelius",
-    role: "Founder",
-    company: "Zenith",
-    content: "Working with EDIZO was a game-changer for our startup. They delivered a highly complex SaaS platform ahead of schedule and with a stunning UI.",
-    image_url: "https://i.pravatar.cc/150?img=11"
-  },
-  {
-    id: 3,
-    name: "Elena Rodriguez",
-    role: "VP Marketing",
-    company: "GlobalReach",
-    content: "The web experience they designed for us has increased our conversion rate by 40%. The team is brilliant, communicative, and truly cares about the product.",
-    image_url: "https://i.pravatar.cc/150?img=5"
-  }
-];
-
 const Testimonials = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchTestimonials = async () => {
       try {
+        setLoading(true);
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${API_URL}/api/testimonials`);
+        const response = await fetch(`${API_URL}/api/testimonials`, { signal: controller.signal });
         if (response.ok) {
           const data = await response.json();
-          setTestimonials(data.length > 0 ? data : fallbackTestimonials);
+          setTestimonials(Array.isArray(data) ? data : []);
         } else {
-          setTestimonials(fallbackTestimonials);
+          setTestimonials([]);
         }
       } catch (err) {
-        console.error("Failed to fetch testimonials:", err);
-        setTestimonials(fallbackTestimonials);
+        if (err.name !== 'AbortError') {
+          console.error("Failed to fetch testimonials:", err);
+          setTestimonials([]);
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchTestimonials();
+    return () => controller.abort();
   }, []);
 
   const nextTestimonial = () => {
@@ -63,48 +41,48 @@ const Testimonials = () => {
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
-  if (loading) {
-     return (
-       <section className="py-32 bg-grey-light dark:bg-navy flex items-center justify-center min-h-[600px]">
-         <Loader2 className="w-10 h-10 animate-spin text-orange" />
-       </section>
-     );
+  if (!testimonials || testimonials.length === 0) {
+    return null;
   }
 
   return (
-    <section className="py-32 bg-grey-light dark:bg-navy relative overflow-hidden">
+    <section className="py-14 sm:py-16 bg-grey-light dark:bg-[#060B13] transition-colors duration-500 relative overflow-hidden">
       
       {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-1/2 h-full bg-white dark:bg-navy-light rounded-l-[5rem] hidden lg:block border-y border-l border-navy/5 dark:border-white/5" />
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-white dark:bg-[#0B132B] rounded-l-[4rem] hidden lg:block border-y border-l border-navy/5 dark:border-white/5" />
       
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="container mx-auto px-6 relative z-10 max-w-7xl">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
           
           <div>
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-5xl font-display font-extrabold text-navy dark:text-white leading-[1.1] tracking-tight mb-8"
+              className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-navy dark:text-white leading-[1.1] tracking-tight mb-4"
             >
-              DON'T JUST <br/> TAKE OUR <span className="text-orange">WORD.</span>
+              WHAT OUR <br/> PARTNERS <span className="text-[#D93800] dark:text-[#FF855C]">SAY.</span>
             </motion.h2>
-            <p className="text-xl text-navy/60 dark:text-white/60 font-medium mb-12">
-              Hear from the founders and leaders who have partnered with us to build their digital products.
+            <p className="text-base sm:text-lg text-navy/75 dark:text-white/75 font-medium mb-8">
+              Hear from founders, clients, and talented engineers who have built their systems and careers with EDIZO.
             </p>
             
             <div className="flex gap-4">
                <button 
+                 type="button"
                  onClick={prevTestimonial}
-                 className="w-14 h-14 rounded-full border border-navy/10 dark:border-white/10 flex items-center justify-center hover:bg-orange hover:text-white hover:border-orange transition-all group"
+                 aria-label="Previous testimonial"
+                 className="w-14 h-14 rounded-full border border-navy/10 dark:border-white/10 flex items-center justify-center hover:bg-orange hover:text-white hover:border-orange transition-all group focus:outline-none focus:ring-2 focus:ring-orange"
                >
-                 <ChevronLeft className="text-navy dark:text-white group-hover:text-white transition-colors" />
+                 <ChevronLeft className="text-navy dark:text-white group-hover:text-white transition-colors" aria-hidden="true" />
                </button>
                <button 
+                 type="button"
                  onClick={nextTestimonial}
-                 className="w-14 h-14 rounded-full border border-navy/10 dark:border-white/10 flex items-center justify-center hover:bg-orange hover:text-white hover:border-orange transition-all group"
+                 aria-label="Next testimonial"
+                 className="w-14 h-14 rounded-full border border-navy/10 dark:border-white/10 flex items-center justify-center hover:bg-orange hover:text-white hover:border-orange transition-all group focus:outline-none focus:ring-2 focus:ring-orange"
                >
-                 <ChevronRight className="text-navy dark:text-white group-hover:text-white transition-colors" />
+                 <ChevronRight className="text-navy dark:text-white group-hover:text-white transition-colors" aria-hidden="true" />
                </button>
             </div>
           </div>
@@ -136,7 +114,7 @@ const Testimonials = () => {
                        </div>
                      )}
                      <div>
-                        <h4 className="font-bold text-lg text-navy dark:text-white">{testimonials[currentIndex].name}</h4>
+                        <h3 className="font-bold text-lg text-navy dark:text-white">{testimonials[currentIndex].name}</h3>
                         <p className="text-navy/60 dark:text-white/60 font-medium text-sm">
                           {testimonials[currentIndex].role} {testimonials[currentIndex].company && `, ${testimonials[currentIndex].company}`}
                         </p>

@@ -1,260 +1,365 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { Search, X, Check, ArrowRight, Sparkles, Layers } from 'lucide-react';
+import TypewriterText from '../components/ui/TypewriterText';
+import DecryptedText from '../components/ui/DecryptedText';
 
 const ServicesPage = () => {
   const [servicesList, setServicesList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_URL}/api/services`);
-        const data = await res.json();
-        setServicesList(Array.isArray(data) ? data : []);
+        if (res.ok) {
+          const data = await res.json();
+          setServicesList(Array.isArray(data) ? data : []);
+        } else {
+          setServicesList([]);
+        }
       } catch (err) {
         console.error("Failed to fetch services", err);
+        setServicesList([]);
       } finally {
         setLoading(false);
       }
     };
     fetchServices();
-  }, []);
+  }, [API_URL]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading services...</div>;
-  }
-
-  const getBentoConfig = (index, service) => {
-    const pattern = index % 5;
-    const imageUrl = service?.image_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${service.image_url}` : null;
-    
-    // Helper to safely render image without heavy overlays so the uploaded poster is clear
-    const renderImage = (className) => {
-      if (imageUrl) {
-        return (
-          <div className={`absolute inset-0 z-0 overflow-hidden ${className}`}>
-            <img 
-              src={imageUrl} 
-              alt={service.title} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-colors duration-500"></div>
-          </div>
-        );
+  // Parse features safely from DB row
+  const parseFeatures = (features) => {
+    if (!features) return [];
+    if (Array.isArray(features)) return features;
+    if (typeof features === 'string') {
+      try {
+        const parsed = JSON.parse(features);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        return features.split('\n').map(s => s.trim()).filter(Boolean);
       }
-      return null;
-    };
-
-    // If an image is uploaded, we override the background and colors for ALL patterns
-    // so the image is fully visible and the text is legible.
-    if (imageUrl) {
-      return {
-        span: pattern === 0 ? "md:col-span-2 md:row-span-2" : pattern === 3 ? "md:col-span-2 row-span-1" : "col-span-1 row-span-1",
-        bg: "bg-black",
-        text: "text-transparent", // Hide HTML text to prevent clashing with poster text
-        textSecondary: "text-transparent",
-        border: "border-transparent",
-        iconColor: "text-white",
-        buttonBg: "bg-orange text-white hover:bg-white hover:text-orange shadow-orange/30",
-        visual: renderImage("rounded-[2.5rem]")
-      };
     }
+    return [];
+  };
 
-    switch (pattern) {
-      case 0:
-        return {
-          span: "md:col-span-2 md:row-span-2",
-          bg: "bg-white",
-          text: "text-grey-dark",
-          textSecondary: "text-grey-medium",
-          border: "border-grey-silver",
-          iconColor: "text-orange",
-          buttonBg: "bg-orange text-white hover:bg-white hover:text-orange shadow-orange/30",
-          visual: (
-            <div className="absolute -bottom-10 -right-10 w-2/3 h-2/3 bg-grey-light rounded-tl-3xl border-t border-l border-grey-silver flex flex-col p-6 shadow-2xl transition-transform duration-700 group-hover:-translate-y-6 group-hover:-translate-x-6 z-0">
-              <div className="w-full h-8 bg-white rounded-lg mb-4 flex items-center px-4 gap-2 shadow-sm">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div><div className="w-3 h-3 rounded-full bg-yellow-400"></div><div className="w-3 h-3 rounded-full bg-green-400"></div>
-              </div>
-              <div className="flex-1 bg-white rounded-xl p-4 grid grid-cols-2 gap-4 shadow-sm">
-                 <div className="bg-orange/10 rounded-lg"></div>
-                 <div className="bg-blue-500/10 rounded-lg"></div>
-              </div>
-            </div>
-          )
-        };
-      case 1:
-        return {
-          span: "col-span-1 row-span-1",
-          bg: "bg-orange",
-          text: "text-white",
-          textSecondary: "text-white/80",
-          border: "border-orange-dark",
-          iconColor: "text-white",
-          buttonBg: "bg-white text-orange hover:bg-navy hover:text-white shadow-black/10",
-          visual: (
-             <div className="absolute -bottom-8 -right-8 w-48 h-64 bg-white/10 backdrop-blur-md rounded-[2rem] border-[4px] border-white/20 p-4 transition-transform duration-500 group-hover:-rotate-12 group-hover:-translate-y-4 z-0">
-               <div className="w-12 h-2 bg-white/30 absolute top-0 left-1/2 -translate-x-1/2 rounded-b-md"></div>
-               <div className="w-full h-1/3 bg-white/20 rounded-xl mt-4"></div>
-             </div>
-          )
-        };
-      case 2:
-        return {
-          span: "col-span-1 row-span-1",
-          bg: "bg-navy",
-          text: "text-white",
-          textSecondary: "text-white/70",
-          border: "border-navy-light",
-          iconColor: "text-orange",
-          buttonBg: "bg-orange text-white hover:bg-white hover:text-navy shadow-black/20",
-          visual: (
-             <div className="absolute top-1/2 right-4 -translate-y-1/2 w-32 h-32 transition-transform duration-700 group-hover:scale-125 group-hover:rotate-45 z-0 opacity-50">
-               <div className="absolute inset-0 border border-white/20 rounded-full"></div>
-               <div className="absolute inset-4 border border-dashed border-white/40 rounded-full"></div>
-               <div className="absolute top-0 left-1/2 w-2 h-2 bg-orange rounded-full"></div>
-             </div>
-          )
-        };
-      case 3:
-        return {
-          span: "md:col-span-2 row-span-1",
-          bg: "bg-white",
-          text: "text-grey-dark",
-          textSecondary: "text-grey-medium",
-          border: "border-grey-silver",
-          iconColor: "text-orange",
-          buttonBg: "bg-navy text-white hover:bg-orange shadow-orange/30",
-          visual: (
-             <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-orange/5 to-transparent z-0 opacity-50 transition-opacity group-hover:opacity-100"></div>
-          )
-        };
-      case 4:
-        return {
-          span: "col-span-1 row-span-1",
-          bg: "bg-grey-light",
-          text: "text-grey-dark",
-          textSecondary: "text-grey-medium",
-          border: "border-grey-silver",
-          iconColor: "text-orange",
-          buttonBg: "bg-orange text-white hover:bg-navy shadow-orange/20",
-          visual: (
-             <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange/10 rounded-full blur-2xl z-0 transition-transform group-hover:scale-150"></div>
-          )
-        };
-      default:
-        return {
-          span: "col-span-1 row-span-1",
-          bg: "bg-white",
-          text: "text-grey-dark",
-          textSecondary: "text-grey-medium",
-          border: "border-grey-silver",
-          iconColor: "text-orange",
-          buttonBg: "bg-navy text-white hover:bg-orange shadow-orange/30",
-          visual: null
-        };
-    }
+  // Filter live database services by search
+  const filteredServices = useMemo(() => {
+    if (!searchQuery.trim()) return servicesList;
+    const q = searchQuery.toLowerCase();
+    return servicesList.filter(s => {
+      const title = (s.title || '').toLowerCase();
+      const desc = (s.description || '').toLowerCase();
+      const cat = (s.category || '').toLowerCase();
+      const feats = parseFeatures(s.features).join(' ').toLowerCase();
+      return title.includes(q) || desc.includes(q) || cat.includes(q) || feats.includes(q);
+    });
+  }, [servicesList, searchQuery]);
+
+  // Dynamic bento styling config per card index
+  const getCardLayoutConfig = (index) => {
+    // 7-card Bento pattern: 7/5 (row 1), 4/4/4 (row 2), 6/6 (row 3)
+    const patterns = [
+      { span: 'lg:col-span-7 col-span-12', isDark: false, glow: 'from-orange/20 via-orange/5 to-transparent' },
+      { span: 'lg:col-span-5 col-span-12', isDark: false, glow: 'from-orange/15 to-transparent' },
+      { span: 'lg:col-span-4 md:col-span-6 col-span-12', isDark: false, glow: 'from-red-500/15 to-transparent' },
+      { span: 'lg:col-span-4 md:col-span-6 col-span-12', isDark: false, glow: 'from-purple-500/15 to-transparent' },
+      { span: 'lg:col-span-4 md:col-span-12 col-span-12', isDark: true, glow: 'from-orange/30 via-red-500/20 to-transparent' },
+      { span: 'lg:col-span-6 col-span-12', isDark: true, isNeon: true, glow: 'from-blue-600/30 via-cyan-500/20 to-transparent' },
+      { span: 'lg:col-span-6 col-span-12', isDark: false, glow: 'from-orange/20 via-red-500/10 to-transparent' },
+    ];
+    return patterns[index % patterns.length];
+  };
+
+  // Fallback service illustration if DB image is not yet uploaded
+  const getFallbackServiceImage = (title, index) => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('web')) return '/images/services/web dev.png';
+    if (t.includes('app') || t.includes('mobile')) return '/images/services/App development.png';
+    if (t.includes('graphic') || t.includes('design')) return '/images/services/graphic design.png';
+    if (t.includes('video') || t.includes('media')) return '/images/services/video editing.png';
+    if (t.includes('seo') || t.includes('market')) return '/images/services/seo marketing.png';
+    if (t.includes('api') || t.includes('tech') || t.includes('it')) return '/images/services/why edizo.png';
+    if (t.includes('intern') || t.includes('train')) return '/images/services/internship.png';
+    return '/images/digital_product_mockup.png';
   };
 
   return (
-    <div className="pt-32 pb-32 bg-grey-light min-h-screen transition-colors duration-500 font-sans">
+    <div className="pt-28 pb-24 bg-[#F8F9FA] dark:bg-[#050B14] min-h-screen font-sans transition-colors duration-500 overflow-x-hidden">
       <Helmet>
-        <title>Our Services - EDIZO</title>
-        <meta name="description" content="EDIZO offers a complete suite of digital services designed to help your brand look great, function flawlessly, and reach the right audience." />
+        <title>Our Services | Custom Web, Mobile & Software Solutions — EDIZO</title>
+        <meta name="description" content="Explore EDIZO's live suite of digital services: custom web application development, mobile apps, UI/UX design, SEO marketing, and cloud API solutions." />
+        <link rel="canonical" href="https://edizotech.in/services" />
       </Helmet>
-      <div className="container mx-auto px-6">
-        
-        {/* Header Section */}
-        <div className="text-center mb-24 max-w-4xl mx-auto">
-          <motion.span 
-            initial={{ opacity: 0, y: 20 }}
+
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
+
+        {/* Compact Header */}
+        <div className="text-center mb-10 max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-block px-6 py-2 rounded-full bg-orange/10 border border-orange/20 text-orange font-bold text-sm mb-8 tracking-wider uppercase"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-orange/10 dark:bg-orange/15 border border-orange/20 text-[#B83200] dark:text-[#FF855C] font-bold text-xs uppercase tracking-widest mb-3"
           >
-            What We Do
-          </motion.span>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            <Sparkles size={13} className="text-[#B83200] dark:text-[#FF855C]" />
+            <TypewriterText 
+              texts={[
+                "Design • Develop • Deliver",
+                "Full-Stack Web & SaaS",
+                "Mobile Applications",
+                "UI/UX & Brand Identity",
+                "Cloud API & SEO Engineering"
+              ]}
+              typingSpeed={60}
+              deletingSpeed={30}
+              pauseDuration={2200}
+            />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-display font-extrabold mb-8 text-grey-dark leading-[1.1] tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-grey-dark dark:text-white leading-tight tracking-tight mb-3"
           >
             Digital Solutions That Drive <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange to-orange-dark">Results</span>
           </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
+
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="text-sm md:text-base text-grey-medium leading-relaxed max-w-2xl mx-auto mb-6"
+          >
+            Explore our end-to-end technology and design capabilities built to scale your business.
+          </motion.p>
+
+          {/* Compact Search Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-xl md:text-2xl text-grey-medium leading-relaxed max-w-3xl mx-auto"
+            className="relative max-w-md mx-auto"
           >
-            EDIZO offers a complete suite of premium digital services designed to help your brand look great, function flawlessly, and reach the right audience.
-          </motion.p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[350px]">
-          {servicesList.map((service, index) => {
-            const conf = getBentoConfig(index, service);
-            return (
-              <motion.div 
-                key={service.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: (index % 3) * 0.1 }}
-                className={`${conf.span} ${conf.bg} ${conf.border} rounded-[2.5rem] p-8 group flex flex-col h-full relative overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2`}
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-grey-medium" size={16} />
+            <input
+              type="text"
+              id="services-search"
+              aria-label="Search services"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search services..."
+              className="w-full pl-11 pr-10 py-2.5 rounded-xl border border-grey-silver dark:border-white/10 focus:border-orange focus:outline-none bg-white dark:bg-[#0A1120] text-grey-dark dark:text-white text-sm font-medium shadow-sm transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')} 
+                aria-label="Clear search"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-grey-medium hover:text-orange transition-colors"
               >
-                {conf.visual}
-                
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="mb-6 flex justify-between items-start">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl backdrop-blur-md border shadow-sm ${index % 5 === 1 || index % 5 === 2 ? 'bg-white/10 text-white border-white/20' : 'bg-grey-light text-grey-dark border-grey-silver'}`}>
-                      0{index + 1}
-                    </div>
-                  </div>
-
-                  <h3 className={`text-2xl md:text-3xl font-display font-bold leading-tight mb-4 group-hover:-translate-y-1 transition-transform ${conf.text}`}>
-                    {service.title}
-                  </h3>
-                  
-                  <p className={`line-clamp-3 mb-6 ${conf.textSecondary}`}>
-                    {service.description}
-                  </p>
-
-                  <div className="mt-auto pt-6 border-t border-current/10 flex items-center justify-between">
-                    <Link 
-                      to={`/services/${service.id}`}
-                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-sm transition-all duration-300 shadow-md hover:-translate-y-1 ${conf.buttonBg}`}
-                    >
-                      View Details 
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                <X size={16} />
+              </button>
+            )}
+          </motion.div>
         </div>
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="grid grid-cols-12 gap-5">
+            <div className="lg:col-span-7 col-span-12 h-64 bg-white dark:bg-[#0A1120] rounded-2xl animate-pulse border border-grey-silver dark:border-white/10" />
+            <div className="lg:col-span-5 col-span-12 h-64 bg-white dark:bg-[#0A1120] rounded-2xl animate-pulse border border-grey-silver dark:border-white/10" />
+            <div className="lg:col-span-4 col-span-12 h-60 bg-white dark:bg-[#0A1120] rounded-2xl animate-pulse border border-grey-silver dark:border-white/10" />
+            <div className="lg:col-span-4 col-span-12 h-60 bg-white dark:bg-[#0A1120] rounded-2xl animate-pulse border border-grey-silver dark:border-white/10" />
+            <div className="lg:col-span-4 col-span-12 h-60 bg-white dark:bg-[#0A1120] rounded-2xl animate-pulse border border-grey-silver dark:border-white/10" />
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="text-center py-16 bg-white dark:bg-[#0A1120] rounded-2xl border border-grey-silver dark:border-white/10 p-8">
+            <Search size={32} className="text-grey-medium mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-grey-dark dark:text-white mb-1">No services match "{searchQuery}"</h3>
+            <p className="text-xs text-grey-medium mb-4">Try searching for Web, App, Design, SEO, or API.</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="px-5 py-2 bg-orange text-white rounded-full font-bold text-xs hover:bg-orange-dark transition-all"
+            >
+              Reset Search
+            </button>
+          </div>
+        ) : (
+          /* Sleek Bento Grid derived purely from live database services */
+          <div className="grid grid-cols-12 gap-5 items-stretch">
+            {filteredServices.map((service, idx) => {
+              const layout = getCardLayoutConfig(idx);
+              const isDark = layout.isDark;
+              const isDarkNeon = layout.isNeon;
+              const isSpecialDark = isDark || isDarkNeon;
+              const features = parseFeatures(service.features).slice(0, 4);
+
+              // Image URL resolution
+              const imgSrc = service.image_url
+                ? (service.image_url.startsWith('http') ? service.image_url : `${API_URL}${service.image_url}`)
+                : getFallbackServiceImage(service.title, idx);
+
+              // Target route
+              const isInternship = (service.category || '').toLowerCase().includes('intern') ||
+                                   (service.title || '').toLowerCase().includes('intern');
+              const targetUrl = isInternship ? '/internships' : `/services/${service.id}`;
+
+              // Title split into primary and highlight word
+              const titleWords = (service.title || '').split(' ');
+              const titlePrimary = titleWords.slice(0, -1).join(' ') || titleWords[0];
+              const titleHighlight = titleWords.length > 1 ? titleWords[titleWords.length - 1] : '';
+
+              return (
+                <motion.div
+                  key={service.id || idx}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-20px" }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className={`${layout.span} group relative rounded-2xl p-5 md:p-6 flex flex-col justify-between overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+                    isDarkNeon
+                      ? 'bg-[#070F26] border-cyan-500/20 text-white hover:border-cyan-400/40 hover:shadow-cyan-500/10'
+                      : isDark
+                      ? 'bg-[#0B132B] border-white/10 text-white hover:border-orange/40 hover:shadow-orange/10'
+                      : 'bg-white dark:bg-[#0A1120] border-grey-silver dark:border-white/10 text-grey-dark dark:text-white shadow-sm hover:border-orange/30'
+                  }`}
+                >
+                  {/* Subtle ambient radial background glow */}
+                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${layout.glow} rounded-full blur-2xl pointer-events-none -translate-y-1/2 translate-x-1/3 opacity-50 group-hover:opacity-80 transition-opacity duration-500`} />
+
+                  <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                    
+                    {/* Details Column */}
+                    <div className="md:col-span-7 col-span-12 flex flex-col justify-between h-full">
+                      <div>
+                        {/* Number & Category Badge */}
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-display font-bold text-[11px] ${
+                            isSpecialDark
+                              ? 'bg-white/10 text-white border border-white/15'
+                              : 'bg-[#0B132B] text-white dark:bg-white dark:text-[#0B132B]'
+                          }`}>
+                            0{idx + 1}
+                          </span>
+                          <span className={`text-[10px] font-bold tracking-wider uppercase ${
+                            isSpecialDark ? 'text-white/60' : 'text-grey-medium'
+                          }`}>
+                            <DecryptedText text={service.category || 'Digital Service'} speed={30} trigger="hover" />
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h2 className="text-lg sm:text-xl font-display font-extrabold leading-tight tracking-tight mb-1.5">
+                          <span className={isSpecialDark ? 'text-white' : 'text-[#0B132B] dark:text-white'}>
+                            {titlePrimary}{' '}
+                          </span>
+                          {titleHighlight && (
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF3B30] to-[#FF5A1F]">
+                              {titleHighlight}
+                            </span>
+                          )}
+                        </h2>
+
+                        {/* Description */}
+                        <p className={`text-xs leading-relaxed line-clamp-2 mb-3.5 ${
+                          isSpecialDark ? 'text-white/70' : 'text-grey-medium'
+                        }`}>
+                          {service.description}
+                        </p>
+
+                        {/* Compact 4-point Checklist */}
+                        {features.length > 0 && (
+                          <div className="space-y-1.5 mb-4">
+                            {features.map((feat, fIdx) => (
+                              <div key={fIdx} className="flex items-center gap-2">
+                                <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#FF3B30] to-[#FF5A1F] flex items-center justify-center text-white shrink-0 shadow-xs shadow-orange/30">
+                                  <Check size={8} strokeWidth={3.5} />
+                                </div>
+                                <span className={`text-[11px] sm:text-xs font-medium line-clamp-1 ${
+                                  isSpecialDark ? 'text-white/85' : 'text-grey-dark dark:text-grey-silver'
+                                }`}>
+                                  {feat}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Compact Action Button */}
+                      <div className="pt-1">
+                        <Link
+                          to={targetUrl}
+                          className="group/btn inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF3B30] to-[#FF5A1F] hover:from-[#E02E24] hover:to-[#E04812] text-white font-bold text-[11px] uppercase tracking-wider shadow-sm hover:shadow-orange/40 hover:scale-105 active:scale-95 transition-all duration-200"
+                        >
+                          {isInternship ? 'Explore Internships' : 'View Details'}
+                          <ArrowRight size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Compact Image Column */}
+                    <div className="md:col-span-5 col-span-12 relative flex items-center justify-center">
+                      <div className="relative w-full aspect-[4/3] max-h-36 md:max-h-44 rounded-xl overflow-hidden bg-grey-light/50 dark:bg-black/20 flex items-center justify-center border border-current/5">
+                        <img
+                          src={imgSrc}
+                          alt={service.title}
+                          width="320"
+                          height="240"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const fallback = getFallbackServiceImage(service.title, idx);
+                            if (e.target.src !== fallback) {
+                              e.target.src = fallback;
+                            }
+                          }}
+                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500 ease-out drop-shadow-md"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Bottom CTA */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-24 bg-[#0a1128] rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden shadow-2xl"
+          className="mt-14 bg-[#070F26] border border-white/10 rounded-2xl p-8 md:p-10 text-center relative overflow-hidden shadow-xl"
         >
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange rounded-full mix-blend-screen filter blur-[120px] opacity-20 translate-x-1/3 -translate-y-1/3" />
-          <div className="relative z-10 max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-display font-extrabold text-white mb-6">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-orange rounded-full mix-blend-screen filter blur-3xl opacity-20 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-display font-extrabold text-white mb-3">
               Ready to transform your digital presence?
             </h2>
-            <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">
-              Let's work together to create solutions that not only look beautiful but drive real business results.
+            <p className="text-white/80 text-xs md:text-sm mb-6 max-w-lg mx-auto">
+              Partner with EDIZO to build custom websites, mobile applications, and scalable software solutions.
             </p>
-            <Link to="/contact" className="px-8 py-4 bg-orange text-white rounded-full font-bold hover:bg-[#e04f1a] transition-all text-sm tracking-wider uppercase inline-flex items-center justify-center gap-2 shadow-lg shadow-orange/20">
-              Start Your Project &rarr;
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/contact"
+                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-[#FF3B30] to-[#FF5A1F] hover:from-[#E02E24] hover:to-[#E04812] text-white rounded-full font-bold text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 shadow-md shadow-orange/30 hover:scale-105 active:scale-95 transition-all"
+              >
+                Start Your Project &rarr;
+              </Link>
+              <Link
+                to="/projects"
+                className="w-full sm:w-auto px-6 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full font-bold text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-all"
+              >
+                View Client Showcase
+              </Link>
+            </div>
           </div>
         </motion.div>
 

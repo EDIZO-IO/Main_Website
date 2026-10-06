@@ -6,6 +6,7 @@ import { SiteProvider } from './context/SiteContext';
 import { HelmetProvider } from 'react-helmet-async';
 import CustomCursor from './components/CustomCursor';
 import WhatsAppBubble from './components/WhatsAppBubble';
+import CookieConsent from './components/CookieConsent';
 
 // Pages
 import Home from './pages/Home';
@@ -16,8 +17,10 @@ import InternshipDetails from './pages/InternshipDetails';
 import InternshipApplication from './pages/InternshipApplication';
 import ProjectsPage from './pages/ProjectsPage';
 import ContactPage from './pages/ContactPage';
-
 import AboutPage from './pages/AboutPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import CookiePolicyPage from './pages/CookiePolicyPage';
 import ScrollToTop from './components/ScrollToTop';
 
 import Login from './pages/Login';
@@ -52,8 +55,12 @@ function App() {
                     </ProtectedRoute>
                   } />
                   <Route path="/projects" element={<ProjectsPage />} />
+                  <Route path="/portfolio" element={<Navigate to="/projects" replace />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/cookies" element={<CookiePolicyPage />} />
                   
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
@@ -65,6 +72,7 @@ function App() {
                 </Routes>
               </main>
               <Footer />
+              <CookieConsent />
               <WhatsAppBubble />
               <CustomCursor />
             </div>

@@ -22,19 +22,9 @@ const seed = async () => {
       ON DUPLICATE KEY UPDATE name = VALUES(name);
     `);
 
-    // Seed Testimonials if empty
-    const [testRows] = await db.query('SELECT COUNT(*) as count FROM testimonials');
-    if (testRows[0].count === 0) {
-      await db.query(`
-        INSERT INTO testimonials (name, role, company, content, image_url, status) VALUES 
-        ('John Doe', 'CEO', 'TechCorp', 'Incredible work by Edizo! They built our product efficiently.', '', 'approved'),
-        ('Jane Smith', 'CTO', 'Innovate', 'The team delivered our product flawlessly with an amazing UI.', '', 'approved')
-      `);
-    }
-    
-    console.log('Seeded database successfully');
+    console.log('Database base categories verified successfully');
   } catch (error) {
-    console.error('Seeding failed:', error);
+    console.error('Seeding check failed:', error);
   } finally {
     process.exit(0);
   }

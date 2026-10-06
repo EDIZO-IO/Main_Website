@@ -1,204 +1,237 @@
-import { motion } from 'framer-motion';
-import { ArrowRight, Loader2, Layers } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Check, ArrowRight, Sparkles, Code2, GraduationCap, Laptop, Smartphone, Palette, Video, Search, Shield } from 'lucide-react';
+import SpotlightCard from '../ui/SpotlightCard';
+import ShinyText from '../ui/ShinyText';
 
-// Bento grid layout styles
-const bentoConfigs = [
-  {
-    span: 'lg:col-span-2 lg:row-span-2',
-    height: 'h-[400px] lg:h-[600px]',
-    bg: 'bg-white dark:bg-navy-light',
-    visual: (
-      <div className="absolute -bottom-10 -right-10 w-3/4 h-3/4 bg-grey-light dark:bg-navy rounded-tl-3xl border-t border-l border-navy/10 flex flex-col p-6 shadow-2xl transition-transform duration-700 group-hover:-translate-y-10 group-hover:-translate-x-10">
-        <div className="w-full h-8 bg-white dark:bg-navy-light rounded-lg mb-4 flex items-center px-4 gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-400"></div><div className="w-3 h-3 rounded-full bg-yellow-400"></div><div className="w-3 h-3 rounded-full bg-green-400"></div>
-        </div>
-        <div className="flex-1 bg-white dark:bg-navy-light rounded-xl p-4 grid grid-cols-2 gap-4">
-           <div className="bg-orange/10 rounded-lg"></div>
-           <div className="bg-blue-500/10 rounded-lg"></div>
-        </div>
-      </div>
-    )
-  },
-  {
-    span: 'lg:col-span-1 lg:row-span-1',
-    height: 'h-[300px]',
-    bg: 'bg-orange text-white',
-    visual: (
-      <div className="absolute -bottom-8 -right-8 w-48 h-64 bg-white/10 backdrop-blur-md rounded-[2rem] border-[4px] border-white/20 p-4 transition-transform duration-500 group-hover:-rotate-12 group-hover:-translate-y-4">
-        <div className="w-12 h-2 bg-white/30 absolute top-0 left-1/2 -translate-x-1/2 rounded-b-md"></div>
-        <div className="w-full h-1/3 bg-white/20 rounded-xl mt-4"></div>
-      </div>
-    )
-  },
-  {
-    span: 'lg:col-span-1 lg:row-span-1',
-    height: 'h-[300px]',
-    bg: 'bg-navy text-white',
-    visual: (
-      <div className="absolute top-1/2 right-10 -translate-y-1/2 w-32 h-32 transition-transform duration-700 group-hover:scale-125 group-hover:rotate-45">
-        <div className="absolute inset-0 border border-white/20 rounded-full"></div>
-        <div className="absolute inset-4 border border-dashed border-white/40 rounded-full"></div>
-        <div className="absolute top-0 left-1/2 w-2 h-2 bg-orange rounded-full"></div>
-      </div>
-    )
-  },
-  {
-    span: 'lg:col-span-1 lg:row-span-1',
-    height: 'h-[300px]',
-    bg: 'bg-white dark:bg-navy-light',
-    visual: (
-      <div className="absolute top-1/2 right-10 -translate-y-1/2 flex gap-2 transition-transform duration-500 group-hover:scale-110">
-        <div className="w-12 h-32 bg-navy/5 rounded-xl flex flex-col gap-2 p-2"><div className="w-full flex-1 bg-navy/10 rounded"></div></div>
-        <div className="w-12 h-32 bg-orange/10 rounded-xl flex flex-col gap-2 p-2 mt-4"><div className="w-full flex-1 bg-orange/20 rounded"></div></div>
-      </div>
-    )
-  },
-  {
-    span: 'lg:col-span-2 lg:row-span-1',
-    height: 'h-[300px]',
-    bg: 'bg-grey-light dark:bg-navy',
-    visual: (
-      <div className="absolute right-0 top-0 h-full w-1/2 flex items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity duration-700">
-         <div className="w-[200px] h-[200px] border border-navy/20 rounded-full animate-[spin_10s_linear_infinite] flex items-center justify-center">
-           <div className="w-[150px] h-[150px] border border-dashed border-orange/40 rounded-full flex items-center justify-center animate-[spin_5s_linear_infinite_reverse]">
-              <div className="font-display font-bold text-orange">AI</div>
-           </div>
-         </div>
-      </div>
-    )
-  }
-];
+const getServiceIcon = (title) => {
+  const t = (title || '').toLowerCase();
+  if (t.includes('web')) return Laptop;
+  if (t.includes('app') || t.includes('mobile')) return Smartphone;
+  if (t.includes('graphic') || t.includes('design') || t.includes('ui')) return Palette;
+  if (t.includes('video') || t.includes('media')) return Video;
+  if (t.includes('seo') || t.includes('market')) return Search;
+  if (t.includes('intern')) return GraduationCap;
+  return Code2;
+};
 
 const Services = () => {
-  const [hoveredId, setHoveredId] = useState(null);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${API_URL}/api/services`);
-        if (response.ok) {
-          const data = await response.json();
-          setServices(Array.isArray(data) ? data.slice(0, 5) : []);
+        const res = await fetch(`${API_URL}/api/services`);
+        if (res.ok) {
+          const data = await res.json();
+          setServices(Array.isArray(data) ? data : []);
         } else {
           setServices([]);
         }
       } catch (err) {
-        console.error("Failed to fetch services from API:", err);
+        console.error("Failed to load home services", err);
         setServices([]);
       } finally {
         setLoading(false);
       }
     };
     fetchServices();
-  }, []);
+  }, [API_URL]);
+
+  const parseFeatures = (features) => {
+    if (!features) return [];
+    if (Array.isArray(features)) return features;
+    if (typeof features === 'string') {
+      try {
+        const parsed = JSON.parse(features);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        return features.split('\n').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  const getFallbackServiceImage = (title) => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('web')) return '/images/services/web dev.png';
+    if (t.includes('app') || t.includes('mobile')) return '/images/services/App development.png';
+    if (t.includes('graphic') || t.includes('design')) return '/images/services/graphic design.png';
+    if (t.includes('video') || t.includes('media')) return '/images/services/video editing.png';
+    if (t.includes('seo') || t.includes('market')) return '/images/services/seo marketing.png';
+    if (t.includes('api') || t.includes('tech') || t.includes('it')) return '/images/services/why edizo.png';
+    if (t.includes('intern') || t.includes('train')) return '/images/services/internship.png';
+    return '/images/digital_product_mockup.png';
+  };
 
   if (loading) {
-     return (
-       <section className="py-24 bg-white dark:bg-navy">
-         <div className="container mx-auto px-6">
-           <div className="mb-16 max-w-2xl">
-             <div className="h-12 md:h-16 w-3/4 bg-grey-light dark:bg-navy-light rounded-2xl animate-pulse mb-4"></div>
-             <div className="h-12 md:h-16 w-1/2 bg-grey-light dark:bg-navy-light rounded-2xl animate-pulse"></div>
-           </div>
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-             <div className="lg:col-span-2 lg:row-span-2 h-[400px] lg:h-[600px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
-             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
-             <div className="lg:col-span-1 lg:row-span-1 h-[300px] bg-grey-light dark:bg-navy-light rounded-[3rem] animate-pulse"></div>
-           </div>
-         </div>
-       </section>
-     );
+    return (
+      <section className="py-20 bg-[#F8F9FA] dark:bg-[#060B13]">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-96 bg-white dark:bg-[#0B132B] rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
   }
 
+  if (!services || services.length === 0) return null;
+
   return (
-    <section className="py-24 bg-white dark:bg-navy">
-      <div className="container mx-auto px-6">
+    <section className="py-14 sm:py-16 bg-[#F8F9FA] dark:bg-[#060B13] transition-colors duration-500 overflow-hidden relative">
+      <div className="container mx-auto px-6 max-w-7xl relative z-10">
         
-        <div className="mb-16 max-w-2xl">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-display font-extrabold text-navy dark:text-white leading-[1.1] tracking-tight"
-          >
-            Everything you need <br/> to build digital.
-          </motion.h2>
+        {/* Structured Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-5 pb-5 border-b border-navy/10 dark:border-white/10">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange/10 dark:bg-orange/15 border border-orange/20 text-[#B83200] dark:text-[#FF855C] font-bold text-xs uppercase tracking-wider mb-3">
+              <Sparkles size={13} />
+              <ShinyText text="Core Engineering Capabilities & Programs" />
+            </div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-navy dark:text-white leading-[1.1] tracking-tight"
+            >
+              Enterprise Software & <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D93800] via-[#FF5A1F] to-[#FF855C]">
+                Digital Engineering Services.
+              </span>
+            </motion.h2>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/services"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-navy/15 dark:border-white/15 text-navy dark:text-white font-bold text-xs uppercase tracking-wider hover:border-orange hover:text-orange dark:hover:border-orange dark:hover:text-orange transition-all duration-200 group shrink-0"
+            >
+              All Services
+              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              to="/internships"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#D93800] to-[#FF5A1F] text-white font-bold text-xs uppercase tracking-wider hover:shadow-md hover:shadow-orange/30 hover:scale-105 active:scale-95 transition-all duration-200 group shrink-0"
+            >
+              Internship Tracks
+              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
 
-        {/* BENTO GRID */}
-        {services.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 auto-rows-min">
-            {services.map((service, idx) => {
-              const config = bentoConfigs[idx % bentoConfigs.length];
-              const displayId = `0${idx + 1}`;
-              return (
-              <motion.div 
-                key={service.id || displayId}
-                initial={{ opacity: 0, y: 30 }}
+        {/* Clean, Uniform 3-Column Structured Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          {services.map((service, idx) => {
+            const features = parseFeatures(service.features).slice(0, 4);
+            const Icon = getServiceIcon(service.title);
+
+            const imgSrc = service.image_url
+              ? (service.image_url.startsWith('http') ? service.image_url : `${API_URL}${service.image_url}`)
+              : getFallbackServiceImage(service.title);
+
+            const isInternship = (service.category || '').toLowerCase().includes('intern') ||
+                                 (service.title || '').toLowerCase().includes('intern');
+            const targetUrl = isInternship ? '/internships' : `/services/${service.id}`;
+
+            return (
+              <motion.div
+                key={service.id || idx}
+                initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                onMouseEnter={() => setHoveredId(displayId)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => navigate(`/services/${service.id || ''}`)}
-                className={`premium-card p-6 flex flex-col relative overflow-hidden group cursor-pointer ${config.span} ${config.height} ${config.bg}`}
+                viewport={{ once: true, margin: "-20px" }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
+                className="flex"
               >
-                
-                <div className="flex justify-between items-start mb-auto relative z-10">
-                  <span className={`text-sm font-display font-bold transition-colors ${config.bg.includes('text-white') ? 'text-white/50 group-hover:text-white' : 'text-navy/30 group-hover:text-orange'}`}>
-                    {displayId}
-                  </span>
+                <SpotlightCard className="w-full p-7 flex flex-col justify-between bg-white dark:bg-[#0B132B] border-navy/10 dark:border-white/10 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
                   
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${hoveredId === displayId ? 'bg-orange text-white rotate-[-45deg]' : 'bg-transparent border border-current opacity-20'}`}>
-                    <ArrowRight size={18} />
-                  </div>
-                </div>
-                
-                {service.image_url ? (
-                  <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl md:rounded-[2.5rem]">
-                    <img 
-                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${service.image_url}`} 
-                      alt={service.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-colors duration-500"></div>
-                  </div>
-                ) : (
-                  config.visual
-                )}
+                  {/* Top Header & Icon Row */}
+                  <div>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-orange/15 text-[#D93800] dark:text-[#FF855C] flex items-center justify-center font-bold">
+                        <Icon size={22} />
+                      </div>
+                      <span className="text-xs font-mono font-bold text-navy/40 dark:text-white/40">
+                        #{String(idx + 1).padStart(2, '0')}
+                      </span>
+                    </div>
 
-                <div className="relative z-10 mt-auto w-2/3">
-                  <h3 className={`text-xl lg:text-2xl font-display font-bold mb-4 ${service.image_url ? 'text-white font-extrabold shadow-sm' : ''}`}>{service.title}</h3>
-                  <p className={`font-medium leading-relaxed ${service.image_url ? 'text-white/90' : config.bg.includes('text-white') ? 'text-white/80' : 'text-navy/60 dark:text-white/60'}`}>{service.description}</p>
-                </div>
-                
-                {/* Expand Detail Overlay */}
-                <div className={`absolute inset-0 bg-navy text-white p-8 flex flex-col justify-between transition-transform duration-500 z-20 ${hoveredId === displayId ? 'translate-y-0' : 'translate-y-full'}`}>
-                   <div>
-                      <h4 className="text-xl font-display font-bold text-orange mb-4">{service.title}</h4>
-                      <p className="text-white/70 font-medium">Click to explore our process, technologies, and case studies related to {service.title.toLowerCase()}.</p>
-                   </div>
-                   <Link to={`/services/${service.id || ''}`} className="text-white font-bold flex items-center gap-2 hover:text-orange transition-colors">
-                      EXPLORE <ArrowRight size={18} />
-                   </Link>
-                </div>
+                    {/* Category Label */}
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#D93800] dark:text-[#FF855C] mb-1.5">
+                      {service.category || (isInternship ? 'Tech Internship' : 'Digital Solution')}
+                    </div>
 
+                    {/* Title */}
+                    <h3 className="text-xl font-display font-extrabold text-navy dark:text-white mb-2.5 leading-snug">
+                      {service.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm text-navy/70 dark:text-white/70 font-medium leading-relaxed mb-5 line-clamp-2">
+                      {service.description}
+                    </p>
+
+                    {/* Visual Thumbnail */}
+                    <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-slate-900 mb-5 border border-navy/5 dark:border-white/5 flex items-center justify-center shadow-xs">
+                      <img
+                        src={imgSrc}
+                        alt={service.title}
+                        width="320"
+                        height="180"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          const fallback = getFallbackServiceImage(service.title);
+                          if (e.target.src !== fallback) {
+                            e.target.src = fallback;
+                          }
+                        }}
+                        className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                    {/* 4 Feature Checklist Points */}
+                    {features.length > 0 && (
+                      <div className="space-y-2 mb-6">
+                        {features.map((feat, fIdx) => (
+                          <div key={fIdx} className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-orange/15 text-[#D93800] dark:text-[#FF855C] flex items-center justify-center shrink-0">
+                              <Check size={9} strokeWidth={3.5} />
+                            </div>
+                            <span className="text-xs font-semibold text-navy/80 dark:text-white/80 line-clamp-1">
+                              {feat}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Action Button */}
+                  <div className="pt-4 border-t border-navy/10 dark:border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-bold text-navy/60 dark:text-white/60">
+                      {isInternship ? 'Live Training' : 'Production Ready'}
+                    </span>
+                    <Link
+                      to={targetUrl}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D93800] dark:text-[#FF855C] hover:text-[#C43802] dark:hover:text-white group/btn"
+                    >
+                      <span>{isInternship ? 'Explore Track' : 'View Service'}</span>
+                      <ArrowRight size={13} className="group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
+
+                </SpotlightCard>
               </motion.div>
-            )})}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-grey-light dark:bg-navy-light rounded-3xl border border-navy/5">
-            <Layers size={36} className="mx-auto text-orange mb-3" />
-            <h3 className="text-xl font-bold text-navy dark:text-white">Services Loading</h3>
-            <p className="text-grey-medium text-sm mt-1">Services catalog is synced dynamically from database.</p>
-          </div>
-        )}
+            );
+          })}
+        </div>
 
       </div>
     </section>

@@ -15,84 +15,111 @@ const getRoleId = async (roleName) => {
   return 4; // Default to student
 };
 
+// @desc    Register a new user (Client / Student)
+// @route   POST /api/auth/register
+// @access  Public
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone, role } = req.body;
-  try {
-    const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) return res.status(400).json({ error: 'User already exists' });
+  const { name, full_name, email, password, phone, role } = req.body;
+  const userName = full_name || name;
 
-    // Restrict public registration to safe roles
+  if (!email || !password || !userName) {
+    return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
+  }
+
+  try {
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, error: 'User already exists with this email' });
+    }
+
+    // Restrict public registration to safe roles (client, student)
     const assignedRoleName = (role === 'client' || role === 'student') ? role : 'student';
     const roleId = await getRoleId(assignedRoleName);
 
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
-    let result;
-    try {
-      // Try inserting into new schema structure (password_hash + role_id)
-      [result] = await pool.query(
-        'INSERT INTO users (name, email, phone, password_hash, role_id, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, email, phone || null, hash, roleId, 'active']
-      );
-    } catch (err) {
-      // Fallback for older schema structure (password + role)
-      [result] = await pool.query(
-        'INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)',
-        [name, email, phone || null, hash, assignedRoleName]
-      );
-    }
+    const [result] = await pool.query(
+      `INSERT INTO users (full_name, email, phone, password_hash, role_id, status)
+       VALUES (?, ?, ?, ?, ?, 'active')`,
+      [userName, email, phone || null, hash, roleId]
+    );
 
-    res.json({ success: true, userId: result.insertId });
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      userId: result.insertId
+    });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to register user' });
+    res.status(500).json({ success: false, error: 'Failed to register user' });
   }
 });
 
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: 'Email and password are required' });
+  }
+
   try {
-    let users = [];
-    try {
-      // Try fetching user joined with roles table
-      [users] = await pool.query(
-        `SELECT u.*, r.name as role_name 
-         FROM users u 
-         LEFT JOIN roles r ON u.role_id = r.id 
-         WHERE u.email = ?`, 
-        [email]
-      );
-    } catch (e) {
-      // Fallback to simple SELECT
-      [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [users] = await pool.query(
+      `SELECT u.*, r.name as role_name 
+       FROM users u 
+       LEFT JOIN roles r ON u.role_id = r.id 
+       WHERE u.email = ? AND (u.deleted_at IS NULL)`,
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid credentials' });
     }
 
-    if (users.length === 0) return res.status(400).json({ error: 'Invalid credentials' });
-
     const user = users[0];
+
+    // Check account status
+    if (user.status === 'banned') {
+      return res.status(403).json({ success: false, error: 'Your account has been suspended' });
+    }
+
     const passwordField = user.password_hash || user.password;
-    if (!passwordField) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!passwordField) {
+      return res.status(400).json({ success: false, error: 'Invalid credentials' });
+    }
 
     const match = await bcrypt.compare(password, passwordField);
-    if (!match) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!match) {
+      return res.status(400).json({ success: false, error: 'Invalid credentials' });
+    }
 
-    let userRole = user.role_name || user.role || 'student';
-    if (userRole === 'super_admin') userRole = 'admin';
-
+    const userRole = user.role_name || user.role || 'student';
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: userRole },
+      { id: user.id, email: user.email, role: userRole, role_id: user.role_id },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
 
     res.json({
+      success: true,
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: userRole }
+      user: {
+        id: user.id,
+        name: user.full_name || user.name,
+        full_name: user.full_name || user.name,
+        email: user.email,
+        phone: user.phone,
+        role: userRole,
+        role_name: userRole,
+        avatar_url: user.avatar_url
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    res.status(500).json({ success: false, error: 'Failed to login' });
   }
 });
 

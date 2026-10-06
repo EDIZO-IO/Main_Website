@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-orange: var(--theme-orange);
@@ -20,7 +21,7 @@
 
 :root {
   --theme-orange: #FF5A1F;
-  --theme-orange-dark: #E04812;
+  --theme-orange-dark: #D93800;
   --theme-orange-light: #FF855C;
 
   --theme-navy: #0B132B;
@@ -28,44 +29,33 @@
 
   --theme-grey-light: #F8F9FA;
   --theme-grey-silver: #EAEAEA;
-  --theme-grey-medium: #888888;
-  --theme-grey-dark: #333333;
+  --theme-grey-medium: #4B5563;
+  --theme-grey-dark: #111827;
 }
 
 .dark {
-  /* In dark mode, navy (text/primary dark color) becomes white/light gray */
-  --theme-navy: #F8F9FA; 
-  --theme-navy-light: #EAEAEA;
+  --theme-orange: #FF5A1F;
+  --theme-orange-dark: #FF855C;
+  --theme-orange-light: #FFB199;
 
-  /* grey-light (main background) becomes deep navy */
-  --theme-grey-light: #050B14;
-  /* white (cards) becomes slightly lighter navy */
-  --theme-grey-silver: #0A1120;
+  --theme-navy: #0B132B; 
+  --theme-navy-light: #1C2541;
+
+  --theme-grey-light: #060B13;
+  --theme-grey-silver: #1E293B;
+  --theme-grey-medium: #94A3B8;
   --theme-grey-dark: #F8F9FA;
-}
-
-/* Custom mapping for white backgrounds in dark mode */
-.dark .bg-white {
-  background-color: #0A1120;
-}
-.dark .text-white {
-  color: #050B14; /* For things that were inverted */
-}
-/* Re-invert buttons that were navy (now white) and text white (now navy) */
-.dark .bg-navy.text-white {
-  background-color: #F8F9FA;
-  color: #050B14;
-}
-.dark .text-navy {
-  color: #F8F9FA;
 }
 
 @layer base {
   body {
-    @apply bg-grey-light text-navy font-sans overflow-x-hidden m-0 p-0 antialiased transition-colors duration-300;
+    @apply bg-[#F8F9FA] dark:bg-[#050B14] text-grey-dark dark:text-white font-sans overflow-x-hidden m-0 p-0 antialiased transition-colors duration-300;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold tracking-tight text-navy;
+    @apply font-display font-bold tracking-tight text-grey-dark dark:text-white;
+  }
+  p {
+    @apply text-grey-medium dark:text-white/80;
   }
 }
 
@@ -154,3 +144,43 @@
     rgba(255, 255, 255, 0)
   );
 }
+
+@keyframes shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shine {
+  animation: shine 4s linear infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float-gentle 4s ease-in-out infinite;
+}
+
